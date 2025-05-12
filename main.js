@@ -26,7 +26,7 @@ function renderPlot(data, categories, colors) {
     .domain([yMin, yMax])
     .range([height - margin.bottom, margin.top]);
 
-  const xAxis = d3.axisBottom(xScale).ticks(28);
+  const xAxis = d3.axisBottom(xScale).ticks(6);
   const yAxis = d3.axisLeft(yScale);
 
   svg.append('g')
@@ -122,41 +122,3 @@ console.log(data);
 renderPlot(data, ['mavg', 'favg'], ['royalblue', 'pink']);
 
 const legends = d3.select('#legends');
-const sexLegend = legends.select('#sexes');
-const sexes = ['male', 'female'];
-const sexColors = ['royalblue', 'pink'];
-sexes.forEach((sex, idx) => {
-  sexLegend
-    .append('circle')
-    .attr('cx', 100)
-    .attr('cy', 75 + idx * 20)
-    .attr('r', 5)
-    .style('fill', sexColors[idx])
-  
-  sexLegend
-    .append('text')
-    .attr('x', 110)
-    .attr('y', 75 + idx * 20)
-    .text(sex)
-    .style("font-size", "15px")
-    .attr("alignment-baseline","middle")
-});
-const lightLegend = legends.select('#lights');
-const lights = ['on', 'off'];
-const lightColors = ['yellow', 'blue'];
-lights.forEach((sex, idx) => {
-  lightLegend
-    .append('circle')
-    .attr('cx', 100)
-    .attr('cy', 75 + idx * 20)
-    .attr('r', 5)
-    .style('fill', lightColors[idx])
-  
-  lightLegend
-    .append('text')
-    .attr('x', 110)
-    .attr('y', 75 + idx * 20)
-    .text(sex)
-    .style("font-size", "15px")
-    .attr("alignment-baseline","middle")
-});
