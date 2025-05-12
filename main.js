@@ -21,6 +21,7 @@ function renderPlot(data) {
     .scaleLinear()
     .domain([0, data[data.length - 1].hours])
     .range([margin.left, width - margin.right]);
+  const initialXDomain = xScale.domain(); // save initial domain (for brushing)
 
   const minF = d3.min(data, d => d.favg);
   const minM = d3.min(data, d => d.mavg);
@@ -55,12 +56,26 @@ function renderPlot(data) {
     .attr('transform', `translate(${margin.left}, 0)`)
     .call(yAxis);
 
-  // add data to plot
+  // enfore chart area so lines don't spill past axes
+  svg.append('defs')
+    .append('clipPath')
+    .attr('id', 'clip')
+    .append('rect')
+    .attr('x', margin.left)
+    .attr('y', margin.top)
+    .attr('width', width - margin.left - margin.right)
+    .attr('height', height - margin.top - margin.bottom);
+
+  const chartArea = svg.append('g')
+    .attr('class', 'chart-area')
+    .attr('clip-path', 'url(#clip)');
+
+    // add data to plot
   const mLine = d3.line()
     .x(d => xScale(d.hours))
     .y(d => yScale(d.mavg));
 
-  svg
+  chartArea
     .append('path')
     .datum(data)
     .attr('class', 'mavg')
@@ -73,7 +88,7 @@ function renderPlot(data) {
     .x(d => xScale(d.hours))
     .y(d => yScale(d.favg));
 
-  svg
+  chartArea
     .append('path')
     .datum(data)
     .attr('class', 'favg')
@@ -81,6 +96,66 @@ function renderPlot(data) {
     .attr('stroke', 'pink')
     .attr('stroke-width', 1.5)
     .attr('d', fLine);
+
+  const brush = d3.brushX()
+    .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+    .on('end', brushed);
+  
+  // append brush to svg
+  svg.append('g')
+    .attr('class', 'brush')
+    .call(brush);
+
+  function brushed(event) {
+    if (!event.selection || event.selection[0] === event.selection[1]) return;
+
+    const [x0, x1] = event.selection;
+    const newDomain = [xScale.invert(x0), xScale.invert(x1)];
+  
+    // Update xScale
+    xScale.domain(newDomain);
+  
+    // Transition axes
+    svg.select('.x.axis')
+      .transition()
+      .duration(750)
+      .call(d3.axisBottom(xScale));
+  
+    // Transition lines
+    chartArea.select('.mavg')
+      .transition()
+      .duration(750)
+      .attr('d', mLine);
+  
+    chartArea.select('.favg')
+      .transition()
+      .duration(750)
+      .attr('d', fLine);
+  
+    // Clear brush selection
+    svg.select('.brush').call(brush.move, null);
+  }
+
+  svg.on('dblclick', () => {
+    xScale.domain(initialXDomain); // reset domain
+  
+    // Update axes
+    svg.select('.x.axis')
+      .transition()
+      .duration(750)
+      .call(d3.axisBottom(xScale));
+  
+    // Redraw lines within the chartArea
+    chartArea.select('.mavg')
+      .transition()
+      .duration(750)
+      .attr('d', mLine);
+  
+    chartArea.select('.favg')
+      .transition()
+      .duration(750)
+      .attr('d', fLine);
+  });
 }
 
 const data = await loadData();
