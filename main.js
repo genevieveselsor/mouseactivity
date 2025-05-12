@@ -6,102 +6,75 @@ async function loadData() {
     return data
 }
 
-function renderPlot(data) {
-  // copied this from lecture
+function renderPlot(data, categories, colors) {
   const width = 1000;
   const height = 300;
   const margin = { top: 20, right: 20, bottom: 30, left: 40 };
 
-  const svg = d3.select('#act-plot');
-  svg.attr('width', width);
-  svg.attr('height', height);
+  const svg = d3.select('#act-plot')
+    .attr('width', width)
+    .attr('height', height);
 
-  // create scales
-  const xScale = d3
-    .scaleLinear()
+  const xScale = d3.scaleLinear()
     .domain([0, data[data.length - 1].hours])
     .range([margin.left, width - margin.right]);
-  const initialXDomain = xScale.domain(); // save initial domain (for brushing)
+  const initialXDomain = xScale.domain(); // for dblclick reset
 
-  const minF = d3.min(data, d => d.favg);
-  const minM = d3.min(data, d => d.mavg);
-  const maxF = d3.max(data, d => d.favg);
-  const maxM = d3.max(data, d => d.mavg);
-
-  const yScale = d3
-    .scaleLinear()
-    .domain([
-      Math.min(minF, minM),
-      Math.max(maxF, maxM)
-    ])
+  const yMin = d3.min(data, d => d3.min(categories, c => d[c]));
+  const yMax = d3.max(data, d => d3.max(categories, c => d[c]));
+  const yScale = d3.scaleLinear()
+    .domain([yMin, yMax])
     .range([height - margin.bottom, margin.top]);
 
-  // create axes
-  const xAxis = d3
-    .axisBottom(xScale)
-    .ticks(28)
-
+  const xAxis = d3.axisBottom(xScale).ticks(28);
   const yAxis = d3.axisLeft(yScale);
 
-  // add gridlines to svg plot
-  svg
-    .append('g')
+  svg.append('g')
     .attr('class', 'x axis')
     .attr('transform', `translate(0, ${height - margin.bottom})`)
     .call(xAxis);
 
-  svg
-    .append('g')
+  svg.append('g')
     .attr('class', 'y axis')
     .attr('transform', `translate(${margin.left}, 0)`)
     .call(yAxis);
 
-  // enfore chart area so lines don't spill past axes
+  // clip‐path so lines don't spill
   svg.append('defs')
     .append('clipPath')
-    .attr('id', 'clip')
+      .attr('id', 'clip')
     .append('rect')
-    .attr('x', margin.left)
-    .attr('y', margin.top)
-    .attr('width', width - margin.left - margin.right)
-    .attr('height', height - margin.top - margin.bottom);
+      .attr('x', margin.left)
+      .attr('y', margin.top)
+      .attr('width', width - margin.left - margin.right)
+      .attr('height', height - margin.top - margin.bottom);
 
   const chartArea = svg.append('g')
     .attr('class', 'chart-area')
     .attr('clip-path', 'url(#clip)');
 
-    // add data to plot
-  const mLine = d3.line()
-    .x(d => xScale(d.hours))
-    .y(d => yScale(d.mavg));
+  // build one line generator per category, store for reuse in brush/dblclick
+  const lineGenerators = {};
+  
+  categories.forEach((cat, idx) => {
+    lineGenerators[cat] = d3.line()
+      .x(d => xScale(d.hours))
+      .y(d => yScale(d[cat]));
 
-  chartArea
-    .append('path')
-    .datum(data)
-    .attr('class', 'mavg')
-    .attr('fill', 'none')
-    .attr('stroke', 'royalblue')
-    .attr('stroke-width', 1.5)
-    .attr('d', mLine);
+    chartArea.append('path')
+      .datum(data)
+      .attr('class', cat)
+      .attr('fill', 'none')
+      .attr('stroke', colors[idx])
+      .attr('stroke-width', 1.5)
+      .attr('d', lineGenerators[cat]);
+  });
 
-  const fLine = d3.line()
-    .x(d => xScale(d.hours))
-    .y(d => yScale(d.favg));
-
-  chartArea
-    .append('path')
-    .datum(data)
-    .attr('class', 'favg')
-    .attr('fill', 'none')
-    .attr('stroke', 'pink')
-    .attr('stroke-width', 1.5)
-    .attr('d', fLine);
-
+  // brush
   const brush = d3.brushX()
     .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
     .on('end', brushed);
-  
-  // append brush to svg
+
   svg.append('g')
     .attr('class', 'brush')
     .call(brush);
@@ -110,57 +83,43 @@ function renderPlot(data) {
     if (!event.selection || event.selection[0] === event.selection[1]) return;
 
     const [x0, x1] = event.selection;
-    const newDomain = [xScale.invert(x0), xScale.invert(x1)];
-  
-    // Update xScale
-    xScale.domain(newDomain);
-  
-    // Transition axes
+    xScale.domain([ xScale.invert(x0), xScale.invert(x1) ]);
+
+    // update X axis
     svg.select('.x.axis')
-      .transition()
-      .duration(750)
+      .transition().duration(750)
       .call(d3.axisBottom(xScale));
-  
-    // Transition lines
-    chartArea.select('.mavg')
-      .transition()
-      .duration(750)
-      .attr('d', mLine);
-  
-    chartArea.select('.favg')
-      .transition()
-      .duration(750)
-      .attr('d', fLine);
-  
-    // Clear brush selection
+
+    // update each line
+    categories.forEach(cat => {
+      chartArea.select(`.${cat}`)
+        .transition().duration(750)
+        .attr('d', lineGenerators[cat]);
+    });
+
+    // clear brush
     svg.select('.brush').call(brush.move, null);
   }
 
+  // double‑click to reset
   svg.on('dblclick', () => {
-    xScale.domain(initialXDomain); // reset domain
-  
-    // Update axes
+    xScale.domain(initialXDomain);
+
     svg.select('.x.axis')
-      .transition()
-      .duration(750)
+      .transition().duration(750)
       .call(d3.axisBottom(xScale));
-  
-    // Redraw lines within the chartArea
-    chartArea.select('.mavg')
-      .transition()
-      .duration(750)
-      .attr('d', mLine);
-  
-    chartArea.select('.favg')
-      .transition()
-      .duration(750)
-      .attr('d', fLine);
+
+    categories.forEach(cat => {
+      chartArea.select(`.${cat}`)
+        .transition().duration(750)
+        .attr('d', lineGenerators[cat]);
+    });
   });
 }
 
 const data = await loadData();
 console.log(data);
-renderPlot(data);
+renderPlot(data, ['mavg', 'favg'], ['royalblue', 'pink']);
 
 const legends = d3.select('#legends');
 const sexLegend = legends.select('#sexes');
