@@ -1,0 +1,15 @@
+&:has(#sexes circle:hover) {
+  #sexes circle:not(:hover) {
+    opacity: 0.5;
+  }
+}
+
+&:has(#lights circle:hover) {
+  #lights circle:not(:hover) {
+    opacity: 0.5;
+  }
+}
+
+circle {
+  cursor: pointer;
+}
