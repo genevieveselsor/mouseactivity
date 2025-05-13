@@ -347,6 +347,8 @@ function handleSexClick(idx) {
 
   d3.select('#sexes').selectAll('text')
     .attr('class', (_, i) => showSex[i] ? null : 'hidden');
+  d3.select('#sexes').selectAll('circle')
+    .attr('class', (_, i) => showSex[i] ? null : 'hidden');
 
   currentCategories = ['mavg', 'favg'].filter((_, i) => showSex[i]);
   const cols = ['royalblue', 'pink'].filter((_, i) => showSex[i]);
@@ -364,6 +366,8 @@ function handleLightClick(idx) {
   showLight[idx] = !showLight[idx];
 
   d3.select('#lights').selectAll('text')
+    .attr('class', (_, i) => showLight[i] ? null : 'hidden');
+  d3.select('#lights').selectAll('circle')
     .attr('class', (_, i) => showLight[i] ? null : 'hidden');
 
   const lightStates = ['On', 'Off'];
