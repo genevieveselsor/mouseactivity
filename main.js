@@ -90,7 +90,7 @@ function renderPlot(plotData, categories, colors, lightState = null) {
   svg.append('text')
     .attr('class', 'x axis-label')
     .attr('x', width / 2)
-    .attr('y', height - margin.bottom / 4)
+    .attr('y', height - margin.bottom / 5)
     .attr('text-anchor', 'middle')
     .style('font-size', '12px')
     .text('Hours');
@@ -464,7 +464,7 @@ function renderDifferencePlot(fullData, lightState = null) {
   svg.append('text')
     .attr('class', 'x axis-label')
     .attr('x', width / 2)
-    .attr('y', 200 - margin.bottom / 4)
+    .attr('y', 200 - margin.bottom / 5)
     .attr('text-anchor', 'middle')
     .style('font-size', '12px')
     .text('Hours');
