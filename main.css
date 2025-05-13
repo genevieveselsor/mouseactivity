@@ -1,3 +1,8 @@
+:root {
+  margin: 0.75em;
+  gap: 0.5em;
+}
+
 body {
   font: 100%/1.5 system-ui;
 }
@@ -25,6 +30,8 @@ circle.hidden {
   display: grid;
   grid-template-rows: 2fr;
   grid-template-columns: 1100px 1fr;
+  justify-items: center;
+  align-items: center;
 
   #act-plot {
     grid-row: 1;
@@ -53,10 +60,9 @@ circle.hidden {
 
   span {
     font-weight: bold;
-    font-size:xx-large
+    font-size:xx-large;
   }
 }
-
 
 
 /* click interactivity, change color of toggle */
