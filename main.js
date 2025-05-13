@@ -10,7 +10,7 @@ console.log(data);
 
 const width = 1000;
 const height = 300;
-const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+const margin = { top: 40, right: 20, bottom: 30, left: 60 };
 let x0, x1;
 let newDomain;
 
@@ -65,6 +65,14 @@ function renderPlot(data, categories, colors, lightState = null) {
   svg.attr('width', width);
   svg.attr('height', height);
 
+  svg.append('text')
+  .attr('class', 'chart-title')
+  .attr('x', width / 2)           
+  .attr('y', margin.top / 1.5)      
+  .attr('text-anchor', 'middle')
+  .style('font-size', '16px')
+  .text('Activity over Time');
+
   const yMin = d3.min(data, d => d3.min(categories, c => d[c]));
   const yMax = d3.max(data, d => d3.max(categories, c => d[c]));
   const yScale = d3.scaleLinear()
@@ -72,7 +80,23 @@ function renderPlot(data, categories, colors, lightState = null) {
     .range([height - margin.bottom, margin.top]);
 
   const xAxis = d3.axisBottom(xScale).ticks(6);
+  svg.append('text')
+  .attr('class', 'x axis-label')
+  .attr('x', width / 2)
+  .attr('y', height - margin.bottom / 4)  // a little below the ticks
+  .attr('text-anchor', 'middle')
+  .style('font-size', '12px')
+  .text('Hours');
+
   const yAxis = d3.axisLeft(yScale);
+  svg.append('text')
+  .attr('class', 'y axis-label')
+  .attr('transform', `rotate(-90)`)
+  .attr('x', - (height / 2))              // because of the rotation
+  .attr('y', margin.left / 2)             // a little left of the ticks
+  .attr('text-anchor', 'middle')
+  .style('font-size', '12px')
+  .text('Average activity');
 
   svg.append('g')
     .attr('class', 'x axis')
@@ -324,7 +348,7 @@ function renderLegend(legend, items, colors, onClick) {
     legend.append('text')
       .attr('x', 110)
       .attr('y', 75 + idx * 20)
-      .text('toggle ' + item + ' line')
+      .text('toggle ' + item + ' data')
       .style('font-size', '15px')
       .attr('alignment-baseline', 'middle');
   });
@@ -409,13 +433,21 @@ function handleLightClick(idx) {
 
   // 9) update stats off of the freshly-computed currentData
   updateStats(currentData, currentCategories);
+
+  let borderColor;
+  if      (showLight[0] && !showLight[1]) borderColor = 'blue'; // only On
+  else if (!showLight[0] && showLight[1]) borderColor = 'orange';   // only Off
+  else                                    borderColor = 'white';  // both or none
+
+  d3.select('#lights')
+    .style('border', `3px solid ${borderColor}`);
 }
 
 const legends = d3.select('#legends');
 
 renderLegend(
   d3.select('#lights'),
-  ['On','Off'],
+  ['lights on','lights off'],
   ['orange','blue'],
   handleLightClick
 );
@@ -431,8 +463,16 @@ function renderDifferencePlot(fullData, lightState = null) {
   const svg = d3.select('#diff-chart')
     .attr('width', width)
     .attr('height', 200);
- 
-  svg.selectAll('*').remove(); // clear old chart
+
+    svg.selectAll('*').remove(); // clear old chart
+
+    svg.append('text')
+    .attr('class', 'chart-title')
+    .attr('x', width / 2)           
+    .attr('y', margin.top)      
+    .attr('text-anchor', 'middle')
+    .style('font-size', '16px')
+    .text('Difference Between Male and Female Activity');
  
   const innerHeight = 200 - margin.top - margin.bottom;
  
@@ -445,7 +485,23 @@ function renderDifferencePlot(fullData, lightState = null) {
     .range([innerHeight + margin.top, margin.top]);
  
   const xAxis = d3.axisBottom(xScale).ticks(6);
+  svg.append('text')
+  .attr('class', 'x axis-label')
+  .attr('x', width / 2)
+  .attr('y', height - margin.bottom / 4)  // a little below the ticks
+  .attr('text-anchor', 'middle')
+  .style('font-size', '12px')
+  .text('Hours');
+
   const yAxis = d3.axisLeft(y);
+  svg.append('text')
+  .attr('class', 'y axis-label')
+  .attr('transform', `rotate(-90)`)
+  .attr('x', - (height / 3))              // because of the rotation
+  .attr('y', margin.left / 2)             // a little left of the ticks
+  .attr('text-anchor', 'middle')
+  .style('font-size', '12px')
+  .text('Difference');
  
   svg.append('g')
     .attr('transform', `translate(0, ${y(0)})`)
@@ -526,3 +582,73 @@ function renderDifferencePlot(fullData, lightState = null) {
       `);
   });
 }
+
+function resetAll() {
+  // 1. reset your zoom
+  xScale.domain(initialXDomain);
+  d3.select('#act-plot .brush').call(d3.brushX().move, null);
+
+  // 2. reset toggles back on
+  showSex              = [true, true];
+  showLight            = [true, true];
+  currentCategories    = ['mavg','favg'];
+  currentLightStateParam = null;
+
+  // 3. reset currentData for stats
+  currentData = data.slice();
+
+  // 4. clear legend styling
+  d3.select('#sexes').selectAll('text').attr('class', null);
+  d3.select('#lights').selectAll('text').attr('class', null);
+
+  // 5. redraw both plots from scratch
+  d3.select('#act-plot').selectAll('*').remove();
+  renderPlot(data, currentCategories, ['royalblue','pink'], null);
+
+  d3.select('#diff-chart').selectAll('*').remove();
+  renderDifferencePlot(differenceData, null);
+  d3.select('#lights').style('border', 'none');
+
+  // 6. reset stats
+  updateStats(currentData, currentCategories);
+}
+
+const resetSvg = d3.select('#reset-legend')
+  .attr('width', 200)
+  .attr('height', 40)
+  .style('cursor', 'pointer')
+  .on('click', resetAll);
+
+  const resetG = resetSvg.append('g')
+  .attr('class', 'reset-btn')
+  .attr('transform', 'translate(10,5)')
+  .style('cursor', 'pointer')
+  .on('click', resetAll)
+  .on('mouseover', function() {
+    d3.select(this).select('rect')
+      .attr('fill', '#e0e0e0');
+  })
+  .on('mouseout', function() {
+    d3.select(this).select('rect')
+      .attr('fill', '#f0f0f0');
+  });
+
+const btnW = 100, btnH = 30;
+
+// 1) draw the button background
+resetG.append('rect')
+  .attr('width', btnW)
+  .attr('height', btnH)
+  .attr('rx', 5)      // rounded corners
+  .attr('ry', 5)
+  .attr('fill', '#f0f0f0')
+  .attr('stroke', '#333');
+
+// 2) draw the text centered in that rect
+resetG.append('text')
+  .attr('x', btnW / 2)
+  .attr('y', btnH / 2)
+  .attr('dy', '0.35em')           // vertically center text
+  .attr('text-anchor', 'middle')  // horizontally center
+  .style('font-size', '13px')
+  .text('Reset All');
