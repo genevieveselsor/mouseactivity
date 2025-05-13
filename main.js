@@ -17,10 +17,14 @@ const xScale = d3.scaleLinear()
 .range([margin.left, width - margin.right]);
 const initialXDomain = xScale.domain(); // for dblclick reset
 
-function renderPlot(data, categories, colors) {
+function renderPlot(data, categories, colors, lightState = null) {
   const svg = d3.select('#act-plot')
-    .attr('width', width)
-    .attr('height', height);
+  
+  svg.selectAll('*').remove();
+  d3.selectAll('.tooltip').remove();
+ 
+  svg.attr('width', width);
+  svg.attr('height', height);
 
   const yMin = d3.min(data, d => d3.min(categories, c => d[c]));
   const yMax = d3.max(data, d => d3.max(categories, c => d[c]));
@@ -60,6 +64,7 @@ function renderPlot(data, categories, colors) {
   
   categories.forEach((cat, idx) => {
     lineGenerators[cat] = d3.line()
+      .defined(d => lightState === null || d.lights === lightState)
       .x(d => xScale(d.hours))
       .y(d => yScale(d[cat]));
 
@@ -285,7 +290,29 @@ function handleSexClick(idx) {
   renderPlot(data, cats, cols);
 }
 
+let selectedLight = -1;
+const lightStates = ['On','Off'];
+
+function handleLightClick(idx) {
+  selectedLight = selectedLight === idx ? -1 : idx;
+  d3.select('#lights').selectAll('text')
+    .attr('class', (_,i) => i === selectedLight ? 'selected' : null);
+
+  // decide which state to show (or null = show both)
+  const filter = selectedLight === -1 ? null : lightStates[selectedLight];
+
+  // re‑draw with gaps per your filter
+  renderPlot(data, ['mavg','favg'], ['royalblue','pink'], filter);
+}
+
 const legends = d3.select('#legends');
+
+renderLegend(
+  d3.select('#lights'),
+  ['On','Off'],
+  ['orange','blue'],
+  handleLightClick
+);
 
 renderLegend(
   legends.select('#sexes'),
