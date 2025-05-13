@@ -15,13 +15,12 @@ let newDomain;
 const xScale = d3.scaleLinear()
 .domain([0, data[data.length - 1].hours])
 .range([margin.left, width - margin.right]);
+const initialXDomain = xScale.domain(); // for dblclick reset
 
 function renderPlot(data, categories, colors) {
   const svg = d3.select('#act-plot')
     .attr('width', width)
     .attr('height', height);
-
-  const initialXDomain = xScale.domain(); // for dblclick reset
 
   const yMin = d3.min(data, d => d3.min(categories, c => d[c]));
   const yMax = d3.max(data, d => d3.max(categories, c => d[c]));
