@@ -579,8 +579,8 @@ function resetAll() {
 
   currentData = data.slice();
 
-  d3.select('#sexes').selectAll('text').attr('class', null).style('opacity', 1);
-  d3.select('#lights').selectAll('text').attr('class', null).style('opacity', 1);
+  d3.selectAll('#lights circle, #lights text, #sexes circle, #sexes text')
+    .classed('hidden', false);
 
   d3.select('#act-plot').selectAll('*').remove();
   renderPlot(data, currentCategories, ['oklch(0.68 0.1603 227.65)', 'oklch(0.7 0.2195 0)'], null);
