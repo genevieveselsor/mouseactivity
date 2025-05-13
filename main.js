@@ -192,6 +192,14 @@ function renderPlot(data, categories, colors) {
  
   // Clear brush selection
   svg.select('.brush').call(brush.move, null);
+
+ const brushedDiffData = data.filter(d =>
+  d.hours >= newDomain[0] && d.hours <= newDomain[1]
+ ).map(d => ({
+  hours: d.hours,
+  diff: d.mavg - d.favg
+}));
+ renderDifferencePlot(brushedDiffData);
  }
  
  
@@ -218,11 +226,19 @@ function renderPlot(data, categories, colors) {
     .transition()
     .duration(750)
     .attr('d', lineGenerators.favg);
+
+  renderDifferencePlot(differenceData);
  });
- 
+
+ renderDifferencePlot(differenceData);
 }
 
+const differenceData = data.map(d => ({
+  hours: d.hours,
+  diff: d.mavg - d.favg
+ })); 
 renderPlot(data, ['mavg', 'favg'], ['royalblue', 'pink']);
+renderDifferencePlot(differenceData);
 
 let selectedSex = -1;
 
@@ -232,14 +248,24 @@ function renderLegend(legend, items, colors, onClick) {
     legend.append('circle')
       .attr('cx', 100)
       .attr('cy', 75 + idx * 20)
-      .attr('r', 5)
+      .attr('r', 7)
       .style('fill', colors[idx])
-      .on('click', () => onClick(idx));  // ← call the injected handler
+      .on('click', () => onClick(idx))  // ← call the injected handler
+      .style('cursor', 'pointer')
+      .on('mouseover', function () {
+        d3.select(this)
+          .attr('stroke', '#333')
+          .attr('stroke-width', 2);
+      })
+      .on('mouseout', function () {
+        d3.select(this)
+          .attr('stroke', 'none');
+      });
 
     legend.append('text')
       .attr('x', 110)
       .attr('y', 75 + idx * 20)
-      .text(item)
+      .text('toggle ' + item + ' line')
       .style('font-size', '15px')
       .attr('alignment-baseline', 'middle');
   });
@@ -267,3 +293,55 @@ renderLegend(
   ['royalblue','pink'],
   handleSexClick
 );
+
+function renderDifferencePlot(fullData) {
+  const svg = d3.select('#diff-chart')
+    .attr('width', width)
+    .attr('height', 200);
+ 
+ 
+  svg.selectAll('*').remove(); // clear old chart
+ 
+ 
+  const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = 200 - margin.top - margin.bottom;
+ 
+ 
+  const x = d3.scaleLinear()
+    .domain(d3.extent(fullData, d => d.hours))
+    .range([margin.left, width - margin.right]);
+ 
+ 
+  const y = d3.scaleLinear()
+    .domain(d3.extent(fullData, d => d.diff))
+    .range([innerHeight + margin.top, margin.top]);
+ 
+ 
+  const xAxis = d3.axisBottom(x).ticks(6);
+  const yAxis = d3.axisLeft(y);
+ 
+ 
+  svg.append('g')
+    .attr('transform', `translate(0, ${y(0)})`)
+    .call(xAxis);
+ 
+ 
+  svg.append('g')
+    .attr('transform', `translate(${margin.left}, 0)`)
+    .call(yAxis);
+ 
+ 
+  const line = d3.line()
+    .x(d => x(d.hours))
+    .y(d => y(d.diff));
+ 
+ 
+  svg.append('path')
+    .datum(fullData)
+    .attr('fill', 'none')
+    .attr('stroke', 'red')
+    .attr('stroke-width', 1.5)
+    .attr('d', line);
+ }
+ 
