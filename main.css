@@ -1,6 +1,5 @@
 :root {
   margin: 0.75em;
-  gap: 0.5em;
 }
 
 body {
@@ -9,12 +8,16 @@ body {
 
 #legends {
   display: grid;
-  grid-template-columns: repeat(3, 333px) 1fr;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5em;
+  margin-bottom: 20px;
   justify-items: center;
   align-items: center;
 
-  margin-bottom: 20px;
-
+  #sexes, #lights {
+    overflow: visible;
+    display: flex;
+  }
 }
 
 circle:hover {

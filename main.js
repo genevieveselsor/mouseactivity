@@ -73,7 +73,7 @@ function renderPlot(plotData, categories, colors, lightState = null) {
     .attr('y', margin.top / 1.5)
     .attr('text-anchor', 'middle')
     .style('font-size', '16px')
-    .text('Activity over Time');
+    .text('Mice Activity Over Time');
 
   // scales
   const yMin = d3.min(data, d => d3.min(categories, c => d[c]));
@@ -102,7 +102,7 @@ function renderPlot(plotData, categories, colors, lightState = null) {
     .attr('y', margin.left / 2)
     .attr('text-anchor', 'middle')
     .style('font-size', '12px')
-    .text('Average activity');
+    .text('Average Activity');
 
   // axes
   svg.append('g')
@@ -336,7 +336,7 @@ function renderLegend(legend, items, colors, onClick) {
     legend.append('text')
       .attr('x', 30)
       .attr('y', 15 + idx * 25)
-      .text(item + ' data')
+      .text(`${item}`)
       .style('font-size', '15px')
       .attr('alignment-baseline', 'middle');
   });
@@ -411,14 +411,14 @@ const legends = d3.select('#legends');
 
 renderLegend(
   d3.select('#lights'),
-  ['lights off', 'lights on'],
+  ['Turn Lights Off', 'Turn Lights On'],
   ['oklch(0.45 0.0419 244.59)', 'oklch(0.91 0.1727 97.41)'],
   handleLightClick
 );
 
 renderLegend(
   legends.select('#sexes'),
-  ['male', 'female'],
+  ['Toggle Male Data', 'Toggle Female Data'],
   ['oklch(0.68 0.1603 227.65)', 'oklch(0.7 0.2195 0)'],
   handleSexClick
 );
@@ -469,14 +469,19 @@ function renderDifferencePlot(fullData, lightState = null) {
     .style('font-size', '12px')
     .text('Hours');
 
-  svg.append('text')
-    .attr('class', 'y axis-label')
-    .attr('transform', 'rotate(-90)')
-    .attr('x', -(200 / 3))
-    .attr('y', margin.left / 2)
-    .attr('text-anchor', 'middle')
-    .style('font-size', '12px')
-    .text('Difference');
+    const zeroY = y(0);
+
+    svg.append('text')
+      .attr('class', 'y axis-label')
+      .attr(
+        'transform',
+        'rotate(-90,' + (margin.left/2) + ',' + zeroY + ')'
+      )
+      .attr('x', margin.left/2)
+      .attr('y', zeroY)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '12px')
+      .text('Difference');
 
   svg.append('g')
     .attr('transform', `translate(0, ${y(0)})`)
