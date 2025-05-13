@@ -1,29 +1,33 @@
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 
+// load mouse data
 async function loadData() {
-    const rep = await fetch('data.json');
-    const data = await rep.json();
-    return data
+  const rep = await fetch('data.json');
+  const data = await rep.json();
+  return data;
 }
-const data = await loadData();
-console.log(data);
 
-const width = 1000;
+const data = await loadData();
+
+// set global dimensions
+const width  = 1000;
 const height = 300;
 const margin = { top: 40, right: 20, bottom: 30, left: 60 };
+
+let currentData = data.slice();
+let currentCategories = ['mavg', 'favg'];
+let currentLightStateParam = null;
+let showSex = [true, true];
+let showLight = [true, true];
+
 let x0, x1;
 let newDomain;
 
-let currentData = data.slice();
-let currentCategories = ['mavg','favg'];
-let currentLightStateParam = null;
-let showSex = [true, true];
-let showLight = [true, true]; 
+const xScale = d3
+  .scaleLinear()
+  .domain([0, data[data.length - 1].hours])
+  .range([margin.left, width - margin.right]);
 
-
-const xScale = d3.scaleLinear()
-.domain([0, data[data.length - 1].hours])
-.range([margin.left, width - margin.right]);
 const initialXDomain = xScale.domain(); // for dblclick reset
 
 function updateStats(subset, categories) {
@@ -47,57 +51,60 @@ function updateStats(subset, categories) {
   if (categories.includes('mavg') && categories.includes('favg') && subset.length) {
     const diffAvg = d3.mean(subset, d => d.mavg - d.favg).toFixed(2);
     d3.select('#avg-diff').text(diffAvg);
-    // show the difference plot
     d3.select('#diff-chart').style('display', null);
   } else {
     d3.select('#avg-diff').text('N/A');
-    // hide the difference plot
     d3.select('#diff-chart').style('display', 'none');
   }
 }
 
 function renderPlot(plotData, categories, colors, lightState = null) {
   const svg = d3.select('#act-plot')
-  
+    .attr('width',  width)
+    .attr('height', height);
+
   svg.selectAll('*').remove();
   d3.selectAll('.tooltip').remove();
- 
-  svg.attr('width', width);
-  svg.attr('height', height);
 
+  // title
   svg.append('text')
-  .attr('class', 'chart-title')
-  .attr('x', width / 2)           
-  .attr('y', margin.top / 1.5)      
-  .attr('text-anchor', 'middle')
-  .style('font-size', '16px')
-  .text('Activity over Time');
+    .attr('class', 'chart-title')
+    .attr('x', width / 2)
+    .attr('y', margin.top / 1.5)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '16px')
+    .text('Activity over Time');
 
+  // scales
   const yMin = d3.min(data, d => d3.min(categories, c => d[c]));
   const yMax = d3.max(data, d => d3.max(categories, c => d[c]));
-  const yScale = d3.scaleLinear()
+  const yScale = d3
+    .scaleLinear()
     .domain([yMin, yMax])
     .range([height - margin.bottom, margin.top]);
 
   const xAxis = d3.axisBottom(xScale).ticks(6);
-  svg.append('text')
-  .attr('class', 'x axis-label')
-  .attr('x', width / 2)
-  .attr('y', height - margin.bottom / 4)  // a little below the ticks
-  .attr('text-anchor', 'middle')
-  .style('font-size', '12px')
-  .text('Hours');
-
   const yAxis = d3.axisLeft(yScale);
-  svg.append('text')
-  .attr('class', 'y axis-label')
-  .attr('transform', `rotate(-90)`)
-  .attr('x', - (height / 2))              // because of the rotation
-  .attr('y', margin.left / 2)             // a little left of the ticks
-  .attr('text-anchor', 'middle')
-  .style('font-size', '12px')
-  .text('Average activity');
 
+  // axis labels
+  svg.append('text')
+    .attr('class', 'x axis-label')
+    .attr('x', width / 2)
+    .attr('y', height - margin.bottom / 4)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '12px')
+    .text('Hours');
+
+  svg.append('text')
+    .attr('class', 'y axis-label')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -(height / 2))
+    .attr('y', margin.left / 2)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '12px')
+    .text('Average activity');
+
+  // axes
   svg.append('g')
     .attr('class', 'x axis')
     .attr('transform', `translate(0, ${height - margin.bottom})`)
@@ -115,16 +122,15 @@ function renderPlot(plotData, categories, colors, lightState = null) {
     .append('rect')
       .attr('x', margin.left)
       .attr('y', margin.top)
-      .attr('width', width - margin.left - margin.right)
+      .attr('width',  width - margin.left - margin.right)
       .attr('height', height - margin.top - margin.bottom);
 
   const chartArea = svg.append('g')
     .attr('class', 'chart-area')
     .attr('clip-path', 'url(#clip)');
 
-  // build one line generator per category, store for reuse in brush/dblclick
+  // build one line generator per category
   const lineGenerators = {};
-  
   categories.forEach((cat, idx) => {
     lineGenerators[cat] = d3.line()
       .defined(d => lightState === null || d.lights === lightState)
@@ -140,219 +146,190 @@ function renderPlot(plotData, categories, colors, lightState = null) {
       .attr('d', lineGenerators[cat]);
   });
 
-  // tooltip
-  const tooltip = d3
-  .select('body')
-  .append('div')
-  .attr('class', 'tooltip')
-  .style('position', 'absolute')
-  .style('visibility', 'hidden')
-  .style('background-color', 'white')
-  .style('border', '1px solid #ddd')
-  .style('padding', '5px')
-  .style('border-radius', '3px')
-  .style('font-size', '12px');
- 
- 
-  const verticalLine = svg
-  .append('line')
-  .attr('class', 'hover-line')
-  .attr('y1', margin.top)
-  .attr('y2', height - margin.bottom)
-  .style('stroke', '#999')
-  .style('stroke-width', 1)
-  .style('visibility', 'hidden');
- 
- 
- // Brush functionality
+  // tooltip & hover line
+  const tooltip = d3.select('body')
+    .append('div')
+    .attr('class', 'tooltip')
+    .style('position', 'absolute')
+    .style('visibility', 'hidden')
+    .style('background-color', 'white')
+    .style('border', '1px solid #ddd')
+    .style('padding', '5px')
+    .style('border-radius', '3px')
+    .style('font-size', '12px');
+
+  const verticalLine = svg.append('line')
+    .attr('class', 'hover-line')
+    .attr('y1', margin.top)
+    .attr('y2', height - margin.bottom)
+    .style('stroke', '#999')
+    .style('stroke-width', 1)
+    .style('visibility', 'hidden');
+
+  // brush
   const brush = d3.brushX()
-  .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
-  .on('end', brushed);
- 
- 
-  const brushG = svg
-  .append('g')
-  .attr('class', 'brush')
-  .call(brush)
- 
- 
+    .extent([
+      [margin.left, margin.top],
+      [width - margin.right, height - margin.bottom]
+    ])
+    .on('end', brushed);
+
+  const brushG = svg.append('g')
+    .attr('class', 'brush')
+    .call(brush);
+
   const brushOverlay = brushG.select('.overlay');
-  // now wire up tooltip + vertical line onto THAT same overlay:
   brushOverlay
-  .on('mouseover', () => {
-    verticalLine.style('visibility', 'visible');
-    tooltip.style('visibility', 'visible');
-  })
-  .on('mouseout', () => {
-    verticalLine.style('visibility', 'hidden');
-    tooltip.style('visibility', 'hidden');
-  })
-  .on('mousemove', function(event) {
-    // compute mouseX relative to the SVG
-    const [mouseX] = d3.pointer(event, svg.node());
-    const hoveredHour = xScale.invert(mouseX);
- 
- 
-    const [minH, maxH] = xScale.domain();
-    const visible = plotData
-      .filter(d => d.hours >= minH && d.hours <= maxH)
-      .filter(d => lightState === null || d.lights === lightState);
-      
-    // find the nearest data point
-    const bisect = d3.bisector(d => d.hours).center;
-    const i = bisect(visible, hoveredHour)
-    const d0 = visible[i - 1], d1 = visible[i];
-    const d = d0 && d1
-      ? (hoveredHour - d0.hours > d1.hours - hoveredHour ? d1 : d0)
-      : (d0 || d1);
-    if (!d) return;
- 
- 
-    // move the vertical line
-    const x = xScale(d.hours);
-    verticalLine.attr('x1', x).attr('x2', x)
-                .style('visibility', 'visible');
- 
- 
-    // position & populate the tooltip
-    tooltip
-      .style('left',  (event.pageX + 10) + 'px')
-      .style('top',   (event.pageY - 28) + 'px')
-      .html(`
+    .on('mouseover', () => {
+      verticalLine.style('visibility', 'visible');
+      tooltip.style('visibility', 'visible');
+    })
+    .on('mouseout', () => {
+      verticalLine.style('visibility', 'hidden');
+      tooltip.style('visibility', 'hidden');
+    })
+    .on('mousemove', function(event) {
+      const [mouseX] = d3.pointer(event, svg.node());
+      const hoveredHour = xScale.invert(mouseX);
+      const [minH, maxH] = xScale.domain();
+      const visible = plotData
+        .filter(d => d.hours >= minH && d.hours <= maxH)
+        .filter(d => lightState === null || d.lights === lightState);
+
+      const bisect = d3.bisector(d => d.hours).center;
+      const i = bisect(visible, hoveredHour);
+      const d0 = visible[i - 1];
+      const d1 = visible[i];
+      const d = d0 && d1
+        ? (hoveredHour - d0.hours > d1.hours - hoveredHour ? d1 : d0)
+        : (d0 || d1);
+      if (!d) return;
+
+      const x = xScale(d.hours);
+      verticalLine
+        .attr('x1', x)
+        .attr('x2', x)
+        .style('visibility', 'visible');
+
+      tooltip
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top',  (event.pageY - 28) + 'px')
+        .html(`
           <strong>Hour:</strong> ${d.hours.toFixed(2)}<br>
-            ${ categories.includes('mavg')
-         ? `<span style="color:royalblue">
-             <strong>Male:</strong> ${d.mavg.toFixed(2)}
-            </span><br>`
-         : ``
-      }
-      ${ categories.includes('favg')
-         ? `<span style="color:pink">
-              <strong>Female:</strong> ${d.favg.toFixed(2)}
-            </span>`
-         : ``
-      }
-      `);
-  });
- 
- 
-  // Brushing function
+          ${categories.includes('mavg')
+            ? `<span style="color:royalblue">
+                 <strong>Male:</strong> ${d.mavg.toFixed(2)}
+               </span><br>`
+            : ''
+          }
+          ${categories.includes('favg')
+            ? `<span style="color:pink">
+                 <strong>Female:</strong> ${d.favg.toFixed(2)}
+               </span>`
+            : ''
+          }
+        `);
+    });
+
   function brushed(event) {
-  if (!event.selection || event.selection[0] === event.selection[1]) return;
- 
- 
-  [x0, x1] = event.selection;
-  newDomain = [xScale.invert(x0), xScale.invert(x1)];
- 
- 
-  // Update xScale
-  xScale.domain(newDomain);
- 
- 
-  // Transition axes
-  svg.select('.x.axis')
-    .transition()
-    .duration(750)
-    .call(d3.axisBottom(xScale));
- 
- 
-  // Transition lines
-  chartArea.select('.mavg')
-    .transition()
-    .duration(750)
-    .attr('d', lineGenerators.mavg);
- 
- 
-  chartArea.select('.favg')
-    .transition()
-    .duration(750)
-    .attr('d', lineGenerators.favg);
- 
- 
-  // Clear brush selection
-  svg.select('.brush').call(brush.move, null);
+    if (!event.selection || event.selection[0] === event.selection[1]) return;
 
- const brushedDiffData = data.filter(d =>
-  d.hours >= newDomain[0] && d.hours <= newDomain[1]
- ).map(d => ({
-  hours: d.hours,
-  diff: d.mavg - d.favg,
-  lights: d.lights
-}));
- renderDifferencePlot(brushedDiffData, lightState);
+    [x0, x1] = event.selection;
+    newDomain = [xScale.invert(x0), xScale.invert(x1)];
+    xScale.domain(newDomain);
 
-  currentData = data.filter(d =>
-    d.hours >= newDomain[0] &&
-    d.hours <= newDomain[1] &&
-    (lightState === null || d.lights === lightState)
+    svg.select('.x.axis')
+      .transition()
+      .duration(750)
+      .call(d3.axisBottom(xScale));
+
+    chartArea.select('.mavg')
+      .transition()
+      .duration(750)
+      .attr('d', lineGenerators.mavg);
+
+    chartArea.select('.favg')
+      .transition()
+      .duration(750)
+      .attr('d', lineGenerators.favg);
+
+    svg.select('.brush').call(brush.move, null);
+
+    const brushedDiffData = data
+      .filter(d => d.hours >= newDomain[0] && d.hours <= newDomain[1])
+      .map(d => ({
+        hours: d.hours,
+        diff: d.mavg - d.favg,
+        lights: d.lights
+      }));
+    renderDifferencePlot(brushedDiffData, lightState);
+
+    currentData = data.filter(d =>
+      d.hours >= newDomain[0] &&
+      d.hours <= newDomain[1] &&
+      (lightState === null || d.lights === lightState)
     );
-  updateStats(currentData, currentCategories);
- }
- 
- 
- // Reset functionality on double-click
- svg.on('dblclick', () => {
-  xScale.domain(initialXDomain); // reset domain
- 
- 
-  // Update axes
-  svg.select('.x.axis')
-    .transition()
-    .duration(750)
-    .call(d3.axisBottom(xScale));
- 
- 
-  // Redraw lines within the chartArea (clipped group)
-  chartArea.select('.mavg')
-    .transition()
-    .duration(750)
-    .attr('d', lineGenerators.mavg);
- 
- 
-  chartArea.select('.favg')
-    .transition()
-    .duration(750)
-    .attr('d', lineGenerators.favg);
+    updateStats(currentData, currentCategories);
+  }
 
-  renderDifferencePlot(differenceData, lightState);
-  
-  currentData = data.filter(d =>
-  lightState === null || d.lights === lightState
-  );
-  updateStats(currentData, currentCategories);
- });
+  svg.on('dblclick', () => {
+    xScale.domain(initialXDomain);
 
- renderDifferencePlot(differenceData);
+    svg.select('.x.axis')
+      .transition()
+      .duration(750)
+      .call(d3.axisBottom(xScale));
+
+    chartArea.select('.mavg')
+      .transition()
+      .duration(750)
+      .attr('d', lineGenerators.mavg);
+
+    chartArea.select('.favg')
+      .transition()
+      .duration(750)
+      .attr('d', lineGenerators.favg);
+
+    renderDifferencePlot(differenceData, lightState);
+
+    currentData = data.filter(d =>
+      lightState === null || d.lights === lightState
+    );
+    updateStats(currentData, currentCategories);
+  });
 }
 
 const differenceData = data.map(d => ({
   hours: d.hours,
   diff: d.mavg - d.favg,
   lights: d.lights
- })); 
-renderPlot(data, ['mavg', 'favg'], ['royalblue', 'pink']);
+}));
+const yMax = d3.max(differenceData, d => d.diff);
+const yMin = d3.min(differenceData, d => d.diff);
+
+renderPlot(data, currentCategories, ['royalblue', 'pink']);
 renderDifferencePlot(differenceData);
 updateStats(currentData, currentCategories);
 
-
 function renderLegend(legend, items, colors, onClick) {
-  legend.selectAll('*').remove();    // wipe old legends
+  legend.selectAll('*').remove();
+
   items.forEach((item, idx) => {
     legend.append('circle')
       .attr('cx', 100)
       .attr('cy', 75 + idx * 20)
       .attr('r', 7)
       .style('fill', colors[idx])
-      .on('click', function() {
-        onClick(idx)
-      })
+      .on('click', onClick.bind(null, idx))
       .on('mouseover', function() {
-        d3.select(this)
+        d3
+          .select(this)
           .attr('stroke', '#333')
           .attr('stroke-width', 2);
       })
       .on('mouseout', function() {
-        d3.select(this)
+        d3
+          .select(this)
           .attr('stroke', 'none');
       });
 
@@ -366,91 +343,76 @@ function renderLegend(legend, items, colors, onClick) {
 }
 
 function handleSexClick(idx) {
-  // flip this series on/off
   showSex[idx] = !showSex[idx];
 
-  // style the legend
   d3.select('#sexes').selectAll('text')
     .attr('class', (_, i) => showSex[i] ? null : 'hidden');
 
-  // figure out which categories & colors remain
-  currentCategories = ['mavg','favg'].filter((_,i) => showSex[i]);
-  const cols = ['royalblue','pink'].filter((_,i) => showSex[i]);
+  currentCategories = ['mavg', 'favg'].filter((_, i) => showSex[i]);
+  const cols = ['royalblue', 'pink'].filter((_, i) => showSex[i]);
 
-  // re-render both plots with both filters
   d3.select('#act-plot').selectAll('*').remove();
   renderPlot(data, currentCategories, cols, currentLightStateParam);
 
   d3.select('#diff-chart').selectAll('*').remove();
   renderDifferencePlot(differenceData, currentLightStateParam);
 
-  // update stats using only the light filter (stats only care about rows)
   updateStats(currentData, currentCategories);
 }
 
 function handleLightClick(idx) {
-  // 1) flip that light‐state on/off
   showLight[idx] = !showLight[idx];
 
-  // 2) update legend styling
   d3.select('#lights').selectAll('text')
     .attr('class', (_, i) => showLight[i] ? null : 'hidden');
 
-  // 3) build the tiny array of allowed states
-  const lightStates = ['On','Off'];
+  const lightStates = ['On', 'Off'];
   const allowed = lightStates.filter((_, i) => showLight[i]);
 
-  // 4) set your single-value filter param
-  if      (allowed.length === 2) currentLightStateParam = null;
-  else if (allowed.length === 1) currentLightStateParam = allowed[0];
-  else                            currentLightStateParam = '__none__';
+  if (allowed.length === 2) {
+    currentLightStateParam = null;
+  } else if (allowed.length === 1){
+    currentLightStateParam = allowed[0];
+  } else {
+    currentLightStateParam = '__none__';
+  }
 
-  // 5) recompute the brushSubset from the current zoom
   const [minH, maxH] = xScale.domain();
-  const brushSubset = data.filter(d =>
+  const brushSubset  = data.filter(d =>
     d.hours >= minH && d.hours <= maxH
   );
 
-  // 6) now build currentData from that brushSubset + light filter
   if (currentLightStateParam === null) {
-    // both on → back to full brushSubset
     currentData = brushSubset.slice();
   } else if (currentLightStateParam === '__none__') {
-    // none on → nothing
     currentData = [];
   } else {
-    // exactly one state → filter brushSubset to that state
     currentData = brushSubset.filter(d =>
       d.lights === currentLightStateParam
     );
   }
 
-  // 7) redraw the main plot using your original logic
-  const cols = ['royalblue','pink'].filter((_, i) => showSex[i]);
+  const cols = ['royalblue', 'pink'].filter((_, i) => showSex[i]);
+
   d3.select('#act-plot').selectAll('*').remove();
-  renderPlot(
-    data,                     // still pass full data so defined() gaps correctly
-    currentCategories,
-    cols,
-    currentLightStateParam    // your on/off/null param
-  );
+  renderPlot(data, currentCategories, cols, currentLightStateParam);
 
-  // 8) redraw the diff plot the same way
   d3.select('#diff-chart').selectAll('*').remove();
-  renderDifferencePlot(
-    differenceData,
-    currentLightStateParam
-  );
+  renderDifferencePlot(differenceData, currentLightStateParam);
 
-  // 9) update stats off of the freshly-computed currentData
   updateStats(currentData, currentCategories);
 
   let borderColor;
-  if      (showLight[0] && !showLight[1]) borderColor = 'blue'; // only On
-  else if (!showLight[0] && showLight[1]) borderColor = 'orange';   // only Off
-  else                                    borderColor = 'white';  // both or none
+  if (showLight[0] && !showLight[1]) {
+    borderColor = 'blue';
+  } else if (!showLight[0] && showLight[1]) {
+    borderColor = 'orange';
+  } else {
+    borderColor = 'white';
+  }
 
-  d3.select('#lights')
+  d3
+    .select('#lights')
     .style('border', `3px solid ${borderColor}`);
 }
 
@@ -458,76 +420,88 @@ const legends = d3.select('#legends');
 
 renderLegend(
   d3.select('#lights'),
-  ['lights on','lights off'],
-  ['orange','blue'],
+  ['lights on', 'lights off'],
+  ['orange', 'blue'],
   handleLightClick
 );
 
 renderLegend(
   legends.select('#sexes'),
-  ['male','female'],
-  ['royalblue','pink'],
+  ['male', 'female'],
+  ['royalblue', 'pink'],
   handleSexClick
 );
 
 function renderDifferencePlot(fullData, lightState = null) {
-  const svg = d3.select('#diff-chart')
-    .attr('width', width)
+  const svg = d3
+    .select('#diff-chart')
+    .attr('width',  width)
     .attr('height', 200);
 
-    svg.selectAll('*').remove(); // clear old chart
+  svg.selectAll('*').remove();
 
-    svg.append('text')
+  // title
+  svg.append('text')
     .attr('class', 'chart-title')
-    .attr('x', width / 2)           
-    .attr('y', margin.top)      
+    .attr('x', width / 2)
+    .attr('y', margin.top)
     .attr('text-anchor', 'middle')
     .style('font-size', '16px')
     .text('Difference Between Male and Female Activity');
- 
-  const innerHeight = 200 - margin.top - margin.bottom;
- 
-  // const x = d3.scaleLinear()
-  //   .domain(d3.extent(fullData, d => d.hours))
-  //   .range([margin.left, width - margin.right]);
- 
-  const y = d3.scaleLinear()
-    .domain(d3.extent(fullData, d => d.diff))
-    .range([innerHeight + margin.top, margin.top]);
- 
-  const xAxis = d3.axisBottom(xScale).ticks(6);
-  svg.append('text')
-  .attr('class', 'x axis-label')
-  .attr('x', width / 2)
-  .attr('y', height - margin.bottom / 4)  // a little below the ticks
-  .attr('text-anchor', 'middle')
-  .style('font-size', '12px')
-  .text('Hours');
 
+  const innerWidth  = width  - margin.left - margin.right;
+  const innerHeight = 200 - margin.top - margin.bottom;
+
+  const y = d3
+    .scaleLinear()
+    .domain([yMin, yMax])
+    .range([innerHeight + margin.top, margin.top]);
+
+  const xAxis = d3.axisBottom(xScale).ticks(6);
   const yAxis = d3.axisLeft(y);
+
+  svg.append('defs')
+  .append('clipPath')
+    .attr('id', 'clip-diff')
+  .append('rect')
+    .attr('x', margin.left)
+    .attr('y', margin.top)
+    .attr('width', innerWidth)
+    .attr('height', innerHeight);
+  
+  // axis labels
   svg.append('text')
-  .attr('class', 'y axis-label')
-  .attr('transform', `rotate(-90)`)
-  .attr('x', - (height / 3))              // because of the rotation
-  .attr('y', margin.left / 2)             // a little left of the ticks
-  .attr('text-anchor', 'middle')
-  .style('font-size', '12px')
-  .text('Difference');
- 
+    .attr('class', 'x axis-label')
+    .attr('x', width / 2)
+    .attr('y', 200 - margin.bottom / 4)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '12px')
+    .text('Hours');
+
+  svg.append('text')
+    .attr('class', 'y axis-label')
+    .attr('transform', 'rotate(-90)')
+    .attr('x', -(200 / 3))
+    .attr('y', margin.left / 2)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '12px')
+    .text('Difference');
+
   svg.append('g')
     .attr('transform', `translate(0, ${y(0)})`)
     .call(xAxis);
- 
+
   svg.append('g')
     .attr('transform', `translate(${margin.left}, 0)`)
     .call(yAxis);
- 
+
   const line = d3.line()
     .defined(d => lightState == null || d.lights === lightState)
     .x(d => xScale(d.hours))
     .y(d => y(d.diff));
- 
+
   svg.append('path')
+    .attr('clip-path', 'url(#clip-diff)')
     .datum(fullData)
     .attr('fill', 'none')
     .attr('stroke', 'red')
@@ -535,76 +509,78 @@ function renderDifferencePlot(fullData, lightState = null) {
     .attr('d', line);
 
   const tooltip = d3.select('body')
-  .append('div')
-  .attr('class', 'tooltip')
-  .style('position', 'absolute')
-  .style('visibility', 'hidden')
-  .style('background-color', 'white')
-  .style('border', '1px solid #ddd')
-  .style('padding', '5px')
-  .style('border-radius', '3px')
-  .style('font-size', '12px');
+    .append('div')
+    .attr('class', 'tooltip')
+    .style('position', 'absolute')
+    .style('visibility', 'hidden')
+    .style('background-color', 'white')
+    .style('border', '1px solid #ddd')
+    .style('padding', '5px')
+    .style('border-radius', '3px')
+    .style('font-size', '12px');
 
   const verticalLine = svg.append('line')
-  .attr('class', 'hover-line')
-  .attr('y1', margin.top)
-  .attr('y2', innerHeight + margin.top)
-  .style('stroke', '#999')
-  .style('stroke-width', 1)
-  .style('visibility', 'hidden');
+    .attr('class', 'hover-line')
+    .attr('y1', margin.top)
+    .attr('y2', innerHeight + margin.top)
+    .style('stroke', '#999')
+    .style('stroke-width', 1)
+    .style('visibility', 'hidden');
 
   svg.append('rect')
-  .attr('class', 'overlay')
-  .attr('x', margin.left)
-  .attr('y', margin.top)
-  .attr('width', innerWidth)
-  .attr('height', innerHeight)
-  .style('fill', 'none')
-  .style('pointer-events', 'all')
-  .on('mouseover', () => {
-    verticalLine.style('visibility', 'visible');
-    tooltip.style('visibility', 'visible');
-  })
-  .on('mouseout', () => {
-    verticalLine.style('visibility', 'hidden');
-    tooltip.style('visibility', 'hidden');
-  })
-  .on('mousemove', function(event) {
-    const [mouseX] = d3.pointer(event, this);
-    const hoveredHour = xScale.invert(mouseX);
+    .attr('class', 'overlay')
+    .attr('x', margin.left)
+    .attr('y', margin.top)
+    .attr('width', innerWidth)
+    .attr('height', innerHeight)
+    .style('fill', 'none')
+    .style('pointer-events', 'all')
+    .on('mouseover', () => {
+      verticalLine.style('visibility', 'visible');
+      tooltip.style('visibility', 'visible');
+    })
+    .on('mouseout', () => {
+      verticalLine.style('visibility', 'hidden');
+      tooltip.style('visibility', 'hidden');
+    })
+    .on('mousemove', function(event) {
+      const [mouseX] = d3.pointer(event, this);
+      const hoveredHour = xScale.invert(mouseX);
+      const bisect = d3.bisector(d => d.hours).center;
+      const i = bisect(fullData, hoveredHour);
+      const d0 = fullData[i - 1];
+      const d1 = fullData[i];
+      const d = d0 && d1
+        ? (hoveredHour - d0.hours > d1.hours - hoveredHour ? d1 : d0)
+        : (d0 || d1);
+      if (!d) return;
 
-    const bisect = d3.bisector(d => d.hours).center;
-    const i = bisect(fullData, hoveredHour);
-    const d0 = fullData[i - 1], d1 = fullData[i];
-    const d = d0 && d1
-      ? (hoveredHour - d0.hours > d1.hours - hoveredHour ? d1 : d0)
-      : (d0 || d1);
-    if (!d) return;
+      const xVal = xScale(d.hours);
+      verticalLine.attr('x1', xVal).attr('x2', xVal);
 
-    const xVal = xScale(d.hours);
-    verticalLine.attr('x1', xVal).attr('x2', xVal);
-
-    tooltip
-      .style('left', (event.pageX + 10) + 'px')
-      .style('top', (event.pageY - 28) + 'px')
-      .html(`
-        <strong>Hour:</strong> ${d.hours.toFixed(2)}<br>
-        <strong>Difference:</strong> ${d.diff.toFixed(2)}
-      `);
-  });
+      tooltip
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 28) + 'px')
+        .html(`
+          <strong>Hour:</strong> ${d.hours.toFixed(2)}<br>
+          <strong>Difference:</strong> ${d.diff.toFixed(2)}
+        `);
+    });
 }
 
 function resetAll() {
   // 1. reset your zoom
   xScale.domain(initialXDomain);
-  d3.select('#act-plot .brush').call(d3.brushX().move, null)
-  .transition()
-  .duration(750);
+  d3
+    .select('#act-plot .brush')
+    .call(d3.brushX().move, null)
+    .transition()
+    .duration(750);
 
   // 2. reset toggles back on
-  showSex              = [true, true];
-  showLight            = [true, true];
-  currentCategories    = ['mavg','favg'];
+  showSex = [true, true];
+  showLight = [true, true];
+  currentCategories = ['mavg', 'favg'];
   currentLightStateParam = null;
 
   // 3. reset currentData for stats
@@ -616,10 +592,11 @@ function resetAll() {
 
   // 5. redraw both plots from scratch
   d3.select('#act-plot').selectAll('*').remove();
-  renderPlot(data, currentCategories, ['royalblue','pink'], null);
+  renderPlot(data, currentCategories, ['royalblue', 'pink'], null);
 
   d3.select('#diff-chart').selectAll('*').remove();
   renderDifferencePlot(differenceData, null);
+
   d3.select('#lights').style('border', 'none');
 
   // 6. reset stats
@@ -627,32 +604,31 @@ function resetAll() {
 }
 
 const resetSvg = d3.select('#reset-legend')
-  .attr('width', 200)
+  .attr('width',  200)
   .attr('height', 40)
   .style('cursor', 'pointer')
   .on('click', resetAll);
 
-  const resetG = resetSvg.append('g')
+const resetG = resetSvg.append('g')
   .attr('class', 'reset-btn')
   .attr('transform', 'translate(10,5)')
   .style('cursor', 'pointer')
   .on('click', resetAll)
   .on('mouseover', function() {
-    d3.select(this).select('rect')
-      .attr('fill', '#e0e0e0');
+    d3.select(this).select('rect').attr('fill', '#e0e0e0');
   })
   .on('mouseout', function() {
-    d3.select(this).select('rect')
-      .attr('fill', '#f0f0f0');
+    d3.select(this).select('rect').attr('fill', '#f0f0f0');
   });
 
-const btnW = 100, btnH = 30;
+const btnW = 100;
+const btnH = 30;
 
 // 1) draw the button background
 resetG.append('rect')
   .attr('width', btnW)
   .attr('height', btnH)
-  .attr('rx', 5)      // rounded corners
+  .attr('rx', 5)
   .attr('ry', 5)
   .attr('fill', '#f0f0f0')
   .attr('stroke', '#333');
@@ -661,7 +637,7 @@ resetG.append('rect')
 resetG.append('text')
   .attr('x', btnW / 2)
   .attr('y', btnH / 2)
-  .attr('dy', '0.35em')           // vertically center text
-  .attr('text-anchor', 'middle')  // horizontally center
-  .style('font-size', '13px')
+  .attr('dy', '0.35em')
+  .attr('text-anchor','middle')
+  .style('font-size','13px')
   .text('Reset All');
