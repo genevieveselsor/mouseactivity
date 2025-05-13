@@ -7,15 +7,41 @@ async function loadData() {
 }
 const data = await loadData();
 console.log(data);
+
 const width = 1000;
 const height = 300;
 const margin = { top: 20, right: 20, bottom: 30, left: 40 };
 let x0, x1;
 let newDomain;
+
+let currentData = data.slice();
+let currentCategories = ['mavg','favg'];
+let currentLightStateParam = null;
+let showSex = [true, true];
+let showLight = [true, true]; 
+
+
 const xScale = d3.scaleLinear()
 .domain([0, data[data.length - 1].hours])
 .range([margin.left, width - margin.right]);
 const initialXDomain = xScale.domain(); // for dblclick reset
+
+function updateStats(subset, categories) {
+    // male
+    if (categories.includes('mavg') && subset.length) {
+      d3.select('#avg-male')
+        .text(d3.mean(subset, d => d.mavg).toFixed(2));
+    } else {
+      d3.select('#avg-male').text('N/A');
+    }
+    // female
+    if (categories.includes('favg') && subset.length) {
+      d3.select('#avg-female')
+        .text(d3.mean(subset, d => d.favg).toFixed(2));
+    } else {
+      d3.select('#avg-female').text('N/A');
+    }
+  }
 
 function renderPlot(data, categories, colors, lightState = null) {
   const svg = d3.select('#act-plot')
@@ -206,6 +232,13 @@ function renderPlot(data, categories, colors, lightState = null) {
   lights: d.lights
 }));
  renderDifferencePlot(brushedDiffData, lightState);
+
+  currentData = data.filter(d =>
+    d.hours >= newDomain[0] &&
+    d.hours <= newDomain[1] &&
+    (currentLightState === null || d.lights === currentLightState)
+    );
+  updateStats(currentData, currentCategories);
  }
  
  
@@ -234,6 +267,11 @@ function renderPlot(data, categories, colors, lightState = null) {
     .attr('d', lineGenerators.favg);
 
   renderDifferencePlot(differenceData, lightState);
+  
+  currentData = data.filter(d =>
+  currentLightState === null || d.lights === currentLightState
+  );
+  updateStats(currentData, currentCategories);
  });
 
  renderDifferencePlot(differenceData);
@@ -246,8 +284,8 @@ const differenceData = data.map(d => ({
  })); 
 renderPlot(data, ['mavg', 'favg'], ['royalblue', 'pink']);
 renderDifferencePlot(differenceData);
+updateStats(currentData, currentCategories);
 
-let selectedSex = -1;
 
 function renderLegend(legend, items, colors, onClick) {
   legend.selectAll('*').remove();    // wipe old legends
@@ -280,33 +318,68 @@ function renderLegend(legend, items, colors, onClick) {
 }
 
 function handleSexClick(idx) {
-  selectedSex = (selectedSex === idx ? -1 : idx);
+  // flip this series on/off
+  showSex[idx] = !showSex[idx];
 
-  // update legend text highlight...
+  // style the legend
   d3.select('#sexes').selectAll('text')
-    .attr('class', (_, i) => i === selectedSex ? 'selected' : null);
+    .attr('class', (_, i) => showSex[i] ? null : 'hidden');
 
-  // clear & re-render plot with only the non‑selected series
+  // figure out which categories & colors remain
+  currentCategories = ['mavg','favg'].filter((_,i) => showSex[i]);
+  const cols = ['royalblue','pink'].filter((_,i) => showSex[i]);
+
+  // re-render both plots with both filters
   d3.select('#act-plot').selectAll('*').remove();
-  const cats = ['mavg','favg'].filter((_,i) => i !== selectedSex);
-  const cols = ['royalblue','pink'].filter((_,i) => i !== selectedSex);
-  renderPlot(data, cats, cols);
+  renderPlot(data, currentCategories, cols, currentLightStateParam);
+
+  d3.select('#diff-chart').selectAll('*').remove();
+  renderDifferencePlot(differenceData, currentLightStateParam);
+
+  // update stats using only the light filter (stats only care about rows)
+  if (currentLightStateParam === null) {
+    currentData = data.slice();
+  } else if (currentLightStateParam === '__none__') {
+    currentData = [];
+  } else {
+    currentData = data.filter(d => d.lights === currentLightStateParam);
+  }
+  updateStats(currentData, currentCategories);
 }
 
-let selectedLight = -1;
-const lightStates = ['On','Off'];
-
 function handleLightClick(idx) {
-  selectedLight = selectedLight === idx ? -1 : idx;
+  // flip this state on/off
+  showLight[idx] = !showLight[idx];
+
+  // style the legend
   d3.select('#lights').selectAll('text')
-    .attr('class', (_,i) => i === selectedLight ? 'selected' : null);
+    .attr('class', (_, i) => showLight[i] ? null : 'hidden');
 
-  // decide which state to show (or null = show both)
-  const filter = selectedLight === -1 ? null : lightStates[selectedLight];
+  // build allowed array
+  const lightStates = ['On','Off'];
+  const allowed = lightStates.filter((_, i) => showLight[i]);
 
-  // re‑draw with gaps per your filter
-  renderPlot(data, ['mavg','favg'], ['royalblue','pink'], filter);
-  renderDifferencePlot(differenceData, filter);
+  // derive your single render filter
+  if (allowed.length === 2)         currentLightStateParam = null;
+  else if (allowed.length === 1)    currentLightStateParam = allowed[0];
+  else                               currentLightStateParam = '__none__';
+
+  // re-render both plots with both filters
+  d3.select('#act-plot').selectAll('*').remove();
+  renderPlot(data, currentCategories, ['royalblue','pink'].filter((_,i)=>showSex[i]), currentLightStateParam);
+
+  d3.select('#diff-chart').selectAll('*').remove();
+  renderDifferencePlot(differenceData, currentLightStateParam);
+
+  // update stats using both filters (stats only care about rows vs. categories)
+  if (currentLightStateParam === null) {
+    currentData = data.slice();
+  } else if (currentLightStateParam === '__none__') {
+    currentData = [];
+  } else {
+    currentData = data.filter(d => d.lights === currentLightStateParam);
+  }
+  updateStats(currentData, currentCategories);
 }
 
 const legends = d3.select('#legends');
