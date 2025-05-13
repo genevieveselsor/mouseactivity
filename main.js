@@ -364,4 +364,63 @@ function renderDifferencePlot(fullData, lightState = null) {
     .attr('stroke', 'red')
     .attr('stroke-width', 1.5)
     .attr('d', line);
+
+  const tooltip = d3.select('body')
+  .append('div')
+  .attr('class', 'tooltip')
+  .style('position', 'absolute')
+  .style('visibility', 'hidden')
+  .style('background-color', 'white')
+  .style('border', '1px solid #ddd')
+  .style('padding', '5px')
+  .style('border-radius', '3px')
+  .style('font-size', '12px');
+
+  const verticalLine = svg.append('line')
+  .attr('class', 'hover-line')
+  .attr('y1', margin.top)
+  .attr('y2', innerHeight + margin.top)
+  .style('stroke', '#999')
+  .style('stroke-width', 1)
+  .style('visibility', 'hidden');
+
+  svg.append('rect')
+  .attr('class', 'overlay')
+  .attr('x', margin.left)
+  .attr('y', margin.top)
+  .attr('width', innerWidth)
+  .attr('height', innerHeight)
+  .style('fill', 'none')
+  .style('pointer-events', 'all')
+  .on('mouseover', () => {
+    verticalLine.style('visibility', 'visible');
+    tooltip.style('visibility', 'visible');
+  })
+  .on('mouseout', () => {
+    verticalLine.style('visibility', 'hidden');
+    tooltip.style('visibility', 'hidden');
+  })
+  .on('mousemove', function(event) {
+    const [mouseX] = d3.pointer(event, this);
+    const hoveredHour = xScale.invert(mouseX);
+
+    const bisect = d3.bisector(d => d.hours).center;
+    const i = bisect(fullData, hoveredHour);
+    const d0 = fullData[i - 1], d1 = fullData[i];
+    const d = d0 && d1
+      ? (hoveredHour - d0.hours > d1.hours - hoveredHour ? d1 : d0)
+      : (d0 || d1);
+    if (!d) return;
+
+    const xVal = xScale(d.hours);
+    verticalLine.attr('x1', xVal).attr('x2', xVal);
+
+    tooltip
+      .style('left', (event.pageX + 10) + 'px')
+      .style('top', (event.pageY - 28) + 'px')
+      .html(`
+        <strong>Hour:</strong> ${d.hours.toFixed(2)}<br>
+        <strong>Difference:</strong> ${d.diff.toFixed(2)}
+      `);
+  });
 }
