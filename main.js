@@ -202,9 +202,10 @@ function renderPlot(data, categories, colors, lightState = null) {
   d.hours >= newDomain[0] && d.hours <= newDomain[1]
  ).map(d => ({
   hours: d.hours,
-  diff: d.mavg - d.favg
+  diff: d.mavg - d.favg,
+  lights: d.lights
 }));
- renderDifferencePlot(brushedDiffData);
+ renderDifferencePlot(brushedDiffData, lightState);
  }
  
  
@@ -232,7 +233,7 @@ function renderPlot(data, categories, colors, lightState = null) {
     .duration(750)
     .attr('d', lineGenerators.favg);
 
-  renderDifferencePlot(differenceData);
+  renderDifferencePlot(differenceData, lightState);
  });
 
  renderDifferencePlot(differenceData);
@@ -240,7 +241,8 @@ function renderPlot(data, categories, colors, lightState = null) {
 
 const differenceData = data.map(d => ({
   hours: d.hours,
-  diff: d.mavg - d.favg
+  diff: d.mavg - d.favg,
+  lights: d.lights
  })); 
 renderPlot(data, ['mavg', 'favg'], ['royalblue', 'pink']);
 renderDifferencePlot(differenceData);
@@ -303,6 +305,7 @@ function handleLightClick(idx) {
 
   // re‑draw with gaps per your filter
   renderPlot(data, ['mavg','favg'], ['royalblue','pink'], filter);
+  renderDifferencePlot(differenceData, filter);
 }
 
 const legends = d3.select('#legends');
@@ -321,48 +324,38 @@ renderLegend(
   handleSexClick
 );
 
-function renderDifferencePlot(fullData) {
+function renderDifferencePlot(fullData, lightState = null) {
   const svg = d3.select('#diff-chart')
     .attr('width', width)
     .attr('height', 200);
  
- 
   svg.selectAll('*').remove(); // clear old chart
  
- 
-  const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-  const innerWidth = width - margin.left - margin.right;
   const innerHeight = 200 - margin.top - margin.bottom;
  
- 
-  const x = d3.scaleLinear()
-    .domain(d3.extent(fullData, d => d.hours))
-    .range([margin.left, width - margin.right]);
- 
+  // const x = d3.scaleLinear()
+  //   .domain(d3.extent(fullData, d => d.hours))
+  //   .range([margin.left, width - margin.right]);
  
   const y = d3.scaleLinear()
     .domain(d3.extent(fullData, d => d.diff))
     .range([innerHeight + margin.top, margin.top]);
  
- 
-  const xAxis = d3.axisBottom(x).ticks(6);
+  const xAxis = d3.axisBottom(xScale).ticks(6);
   const yAxis = d3.axisLeft(y);
- 
  
   svg.append('g')
     .attr('transform', `translate(0, ${y(0)})`)
     .call(xAxis);
  
- 
   svg.append('g')
     .attr('transform', `translate(${margin.left}, 0)`)
     .call(yAxis);
  
- 
   const line = d3.line()
-    .x(d => x(d.hours))
+    .defined(d => lightState == null || d.lights === lightState)
+    .x(d => xScale(d.hours))
     .y(d => y(d.diff));
- 
  
   svg.append('path')
     .datum(fullData)
@@ -370,5 +363,4 @@ function renderDifferencePlot(fullData) {
     .attr('stroke', 'red')
     .attr('stroke-width', 1.5)
     .attr('d', line);
- }
- 
+}
