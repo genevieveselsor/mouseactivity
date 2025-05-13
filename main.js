@@ -217,13 +217,13 @@ function renderPlot(plotData, categories, colors, lightState = null) {
         .html(`
           <strong>Hour:</strong> ${d.hours.toFixed(2)}<br>
           ${categories.includes('mavg')
-            ? `<span style="color:royalblue">
+            ? `<span style="color:oklch(0.68 0.1603 227.65)">
                  <strong>Male:</strong> ${d.mavg.toFixed(2)}
                </span><br>`
             : ''
           }
           ${categories.includes('favg')
-            ? `<span style="color:pink">
+            ? `<span style="color:oklch(0.7 0.2195 0)">
                  <strong>Female:</strong> ${d.favg.toFixed(2)}
                </span>`
             : ''
@@ -307,7 +307,7 @@ const differenceData = data.map(d => ({
 const yMax = d3.max(differenceData, d => d.diff);
 const yMin = d3.min(differenceData, d => d.diff);
 
-renderPlot(data, currentCategories, ['royalblue', 'pink']);
+renderPlot(data, currentCategories, ['oklch(0.68 0.1603 227.65)', 'oklch(0.7 0.2195 0)']);
 renderDifferencePlot(differenceData);
 updateStats(currentData, currentCategories);
 
@@ -351,7 +351,7 @@ function handleSexClick(idx) {
     .attr('class', (_, i) => showSex[i] ? null : 'hidden');
 
   currentCategories = ['mavg', 'favg'].filter((_, i) => showSex[i]);
-  const cols = ['royalblue', 'pink'].filter((_, i) => showSex[i]);
+  const cols = ['oklch(0.68 0.1603 227.65)', 'oklch(0.7 0.2195 0)'].filter((_, i) => showSex[i]);
 
   d3.select('#act-plot').selectAll('*').remove();
   renderPlot(data, currentCategories, cols, currentLightStateParam);
@@ -396,7 +396,7 @@ function handleLightClick(idx) {
     );
   }
 
-  const cols = ['royalblue', 'pink'].filter((_, i) => showSex[i]);
+  const cols = ['oklch(0.68 0.1603 227.65)', 'oklch(0.7 0.2195 0)'].filter((_, i) => showSex[i]);
 
   d3.select('#act-plot').selectAll('*').remove();
   renderPlot(data, currentCategories, cols, currentLightStateParam);
@@ -405,34 +405,21 @@ function handleLightClick(idx) {
   renderDifferencePlot(differenceData, currentLightStateParam);
 
   updateStats(currentData, currentCategories);
-
-  let borderColor;
-  if (showLight[0] && !showLight[1]) {
-    borderColor = 'blue';
-  } else if (!showLight[0] && showLight[1]) {
-    borderColor = 'orange';
-  } else {
-    borderColor = 'white';
-  }
-
-  d3
-    .select('#lights')
-    .style('border', `3px solid ${borderColor}`);
 }
 
 const legends = d3.select('#legends');
 
 renderLegend(
   d3.select('#lights'),
-  ['lights on', 'lights off'],
-  ['orange', 'blue'],
+  ['lights off', 'lights on'],
+  ['oklch(0.45 0.0419 244.59)', 'oklch(0.91 0.1727 97.41)'],
   handleLightClick
 );
 
 renderLegend(
   legends.select('#sexes'),
   ['male', 'female'],
-  ['royalblue', 'pink'],
+  ['oklch(0.68 0.1603 227.65)', 'oklch(0.7 0.2195 0)'],
   handleSexClick
 );
 
@@ -508,7 +495,7 @@ function renderDifferencePlot(fullData, lightState = null) {
     .attr('clip-path', 'url(#clip-diff)')
     .datum(fullData)
     .attr('fill', 'none')
-    .attr('stroke', 'red')
+    .attr('stroke', 'oklch(0.7 0.1677 50.82)')
     .attr('stroke-width', 1.5)
     .attr('d', line);
 
@@ -578,7 +565,6 @@ function renderDifferencePlot(fullData, lightState = null) {
 }
 
 function resetAll() {
-  // 1. reset your zoom
   xScale.domain(initialXDomain);
   d3
     .select('#act-plot .brush')
@@ -586,29 +572,24 @@ function resetAll() {
     .transition()
     .duration(750);
 
-  // 2. reset toggles back on
   showSex = [true, true];
   showLight = [true, true];
   currentCategories = ['mavg', 'favg'];
   currentLightStateParam = null;
 
-  // 3. reset currentData for stats
   currentData = data.slice();
 
-  // 4. clear legend styling
-  d3.select('#sexes').selectAll('text').attr('class', null);
-  d3.select('#lights').selectAll('text').attr('class', null);
+  d3.select('#sexes').selectAll('text').attr('class', null).style('opacity', 1);
+  d3.select('#lights').selectAll('text').attr('class', null).style('opacity', 1);
 
-  // 5. redraw both plots from scratch
   d3.select('#act-plot').selectAll('*').remove();
-  renderPlot(data, currentCategories, ['royalblue', 'pink'], null);
+  renderPlot(data, currentCategories, ['oklch(0.68 0.1603 227.65)', 'oklch(0.7 0.2195 0)'], null);
 
   d3.select('#diff-chart').selectAll('*').remove();
   renderDifferencePlot(differenceData, null);
 
   d3.select('#lights').style('border', 'none');
 
-  // 6. reset stats
   updateStats(currentData, currentCategories);
 }
 
