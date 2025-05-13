@@ -1,3 +1,55 @@
-circle {
-  cursor: pointer;
+body {
+  font: 100%/1.5 system-ui;
 }
+
+#legends {
+  display: grid;
+  grid-template-columns: repeat(3, 333px) 1fr;
+  justify-items: center;
+  align-items: center;
+
+  margin-bottom: 20px;
+}
+
+circle:hover {
+  cursor: pointer;
+
+}
+
+#charts {
+  display: grid;
+  grid-template-rows: 2fr;
+  grid-template-columns: 1100px 1fr;
+
+  #act-plot {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  #diff-chart {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  #stats {
+    grid-row: 1 / 2;
+    grid-column: 2;
+  }
+}
+
+#stats {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* align-items: center; */
+  
+  p {
+    font-size:large;
+    margin: 0;
+  }
+
+  span {
+    font-weight: bold;
+    font-size:xx-large
+  }
+}
+
+/* click interactivity, change color of toggle */

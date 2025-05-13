@@ -6,30 +6,28 @@
 
     <link rel="stylesheet" href="main.css" />
     <script src="main.js" type="module"></script>
-    <title>mice</title>
+
+    <title>Mice Activity</title>
 </head>
 <body>
-    <h1>mice activity</h1>
+    <h1>Visualizations on Activity of Mice</h1>
+
+    <p>Click on the circles below to filter data. Drag your cursor on the top graph to select a range of time. Clcik on the reset button to reset all filters.</p>
     <div id="legends">
-        <svg id="sexes"></svg>
-        <svg id="lights"></svg>
-        <svg id="reset-legend"></svg>
-        <p>I added a border that indicates whether it's showing lights on (orange) or lights off data (blue) to the legend. Not sure if this is intuitive so feel free to change or add a description when styling!</p>
+        <svg id="sexes" width="160" height="50"></svg>
+        <svg id="lights" width="180" height="50"></svg>
+        <svg id="reset-legend" width="110"></svg>
+        <!-- <p>I added a border that indicates whether it's showing lights on (orange) or lights off data (blue) to the legend. Not sure if this is intuitive so feel free to change or add a description when styling!</p> -->
     </div>
-    <div>
+    <div id="charts">
         <svg id="act-plot"></svg>
         <svg id="diff-chart" width="1000" height="300"></svg>
-      </div>
+        <div id="stats">
+            <p>Average male activity: </p><span id="avg-male">—</span>
+            <p>Average female activity: </p><span id="avg-female">—</span>
+            <p>Average Difference Between Male and Female Activity: </p><span id="avg-diff">—</span>
+        </div>
+    </div>
 
-    <div id="stats">
-    <p>Average male activity: <span id="avg-male">—</span></p>
-    <p>Average female activity: <span id="avg-female">—</span></p>
-    <p>Average Difference Between Male and Female Activity: <span id="avg-diff">—</span></p>
-    </div>
-    <div>
-        <p>
-            <strong>i think it would be better to have the stats on the right side instead of the bottom. Again feel free to change this when styling!</strong>
-        </p>
-    </div>
 </body>
 </html>

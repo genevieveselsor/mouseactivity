@@ -316,8 +316,8 @@ function renderLegend(legend, items, colors, onClick) {
 
   items.forEach((item, idx) => {
     legend.append('circle')
-      .attr('cx', 100)
-      .attr('cy', 75 + idx * 20)
+      .attr('cx', 15)
+      .attr('cy', 15 + idx * 25)
       .attr('r', 7)
       .style('fill', colors[idx])
       .on('click', onClick.bind(null, idx))
@@ -334,9 +334,9 @@ function renderLegend(legend, items, colors, onClick) {
       });
 
     legend.append('text')
-      .attr('x', 110)
-      .attr('y', 75 + idx * 20)
-      .text('toggle ' + item + ' data')
+      .attr('x', 30)
+      .attr('y', 15 + idx * 25)
+      .text(item + ' data')
       .style('font-size', '15px')
       .attr('alignment-baseline', 'middle');
   });
@@ -609,7 +609,7 @@ function resetAll() {
 }
 
 const resetSvg = d3.select('#reset-legend')
-  .attr('width',  200)
+  .attr('width',  120)
   .attr('height', 40)
   .style('cursor', 'pointer')
   .on('click', resetAll);
