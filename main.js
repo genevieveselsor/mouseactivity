@@ -56,7 +56,7 @@ function updateStats(subset, categories) {
   }
 }
 
-function renderPlot(data, categories, colors, lightState = null) {
+function renderPlot(plotData, categories, colors, lightState = null) {
   const svg = d3.select('#act-plot')
   
   svg.selectAll('*').remove();
@@ -132,7 +132,7 @@ function renderPlot(data, categories, colors, lightState = null) {
       .y(d => yScale(d[cat]));
 
     chartArea.append('path')
-      .datum(data)
+      .datum(plotData)
       .attr('class', cat)
       .attr('fill', 'none')
       .attr('stroke', colors[idx])
@@ -193,10 +193,15 @@ function renderPlot(data, categories, colors, lightState = null) {
     const hoveredHour = xScale.invert(mouseX);
  
  
+    const [minH, maxH] = xScale.domain();
+    const visible = plotData
+      .filter(d => d.hours >= minH && d.hours <= maxH)
+      .filter(d => lightState === null || d.lights === lightState);
+      
     // find the nearest data point
     const bisect = d3.bisector(d => d.hours).center;
-    const i = bisect(data, hoveredHour);
-    const d0 = data[i - 1], d1 = data[i];
+    const i = bisect(visible, hoveredHour)
+    const d0 = visible[i - 1], d1 = visible[i];
     const d = d0 && d1
       ? (hoveredHour - d0.hours > d1.hours - hoveredHour ? d1 : d0)
       : (d0 || d1);
@@ -214,13 +219,19 @@ function renderPlot(data, categories, colors, lightState = null) {
       .style('left',  (event.pageX + 10) + 'px')
       .style('top',   (event.pageY - 28) + 'px')
       .html(`
-        <strong>Hour:</strong> ${d.hours.toFixed(2)}<br>
-        <span style="color:royalblue">
-          <strong>Male:</strong> ${d.mavg.toFixed(2)}
-        </span><br>
-        <span style="color:pink">
-          <strong>Female:</strong> ${d.favg.toFixed(2)}
-        </span>
+          <strong>Hour:</strong> ${d.hours.toFixed(2)}<br>
+            ${ categories.includes('mavg')
+         ? `<span style="color:royalblue">
+             <strong>Male:</strong> ${d.mavg.toFixed(2)}
+            </span><br>`
+         : ``
+      }
+      ${ categories.includes('favg')
+         ? `<span style="color:pink">
+              <strong>Female:</strong> ${d.favg.toFixed(2)}
+            </span>`
+         : ``
+      }
       `);
   });
  
@@ -586,7 +597,9 @@ function renderDifferencePlot(fullData, lightState = null) {
 function resetAll() {
   // 1. reset your zoom
   xScale.domain(initialXDomain);
-  d3.select('#act-plot .brush').call(d3.brushX().move, null);
+  d3.select('#act-plot .brush').call(d3.brushX().move, null)
+  .transition()
+  .duration(750);
 
   // 2. reset toggles back on
   showSex              = [true, true];
