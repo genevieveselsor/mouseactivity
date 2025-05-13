@@ -258,8 +258,6 @@ function renderLegend(legend, items, colors, onClick) {
       .attr('r', 7)
       .style('fill', colors[idx])
       .on('click', function() {
-        d3.select(this)
-          .attr('opacity', 0.5)
         onClick(idx)
       })
       .on('mouseover', function() {
