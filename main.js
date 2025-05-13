@@ -5,19 +5,22 @@ async function loadData() {
     const data = await rep.json();
     return data
 }
+const data = await loadData();
+console.log(data);
+const width = 1000;
+const height = 300;
+const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+let x0, x1;
+let newDomain;
+const xScale = d3.scaleLinear()
+.domain([0, data[data.length - 1].hours])
+.range([margin.left, width - margin.right]);
 
 function renderPlot(data, categories, colors) {
-  const width = 1000;
-  const height = 300;
-  const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-
   const svg = d3.select('#act-plot')
     .attr('width', width)
     .attr('height', height);
 
-  const xScale = d3.scaleLinear()
-    .domain([0, data[data.length - 1].hours])
-    .range([margin.left, width - margin.right]);
   const initialXDomain = xScale.domain(); // for dblclick reset
 
   const yMin = d3.min(data, d => d3.min(categories, c => d[c]));
@@ -160,8 +163,8 @@ function renderPlot(data, categories, colors) {
   if (!event.selection || event.selection[0] === event.selection[1]) return;
  
  
-  const [x0, x1] = event.selection;
-  const newDomain = [xScale.invert(x0), xScale.invert(x1)];
+  [x0, x1] = event.selection;
+  newDomain = [xScale.invert(x0), xScale.invert(x1)];
  
  
   // Update xScale
@@ -220,8 +223,48 @@ function renderPlot(data, categories, colors) {
  
 }
 
-const data = await loadData();
-console.log(data);
 renderPlot(data, ['mavg', 'favg'], ['royalblue', 'pink']);
 
+let selectedSex = -1;
+
+function renderLegend(legend, items, colors, onClick) {
+  legend.selectAll('*').remove();    // wipe old legends
+  items.forEach((item, idx) => {
+    legend.append('circle')
+      .attr('cx', 100)
+      .attr('cy', 75 + idx * 20)
+      .attr('r', 5)
+      .style('fill', colors[idx])
+      .on('click', () => onClick(idx));  // ← call the injected handler
+
+    legend.append('text')
+      .attr('x', 110)
+      .attr('y', 75 + idx * 20)
+      .text(item)
+      .style('font-size', '15px')
+      .attr('alignment-baseline', 'middle');
+  });
+}
+
+function handleSexClick(idx) {
+  selectedSex = (selectedSex === idx ? -1 : idx);
+
+  // update legend text highlight...
+  d3.select('#sexes').selectAll('text')
+    .attr('class', (_, i) => i === selectedSex ? 'selected' : null);
+
+  // clear & re-render plot with only the non‑selected series
+  d3.select('#act-plot').selectAll('*').remove();
+  const cats = ['mavg','favg'].filter((_,i) => i !== selectedSex);
+  const cols = ['royalblue','pink'].filter((_,i) => i !== selectedSex);
+  renderPlot(data, cats, cols);
+}
+
 const legends = d3.select('#legends');
+
+renderLegend(
+  legends.select('#sexes'),
+  ['male','female'],
+  ['royalblue','pink'],
+  handleSexClick
+);
