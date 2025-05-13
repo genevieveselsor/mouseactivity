@@ -257,14 +257,17 @@ function renderLegend(legend, items, colors, onClick) {
       .attr('cy', 75 + idx * 20)
       .attr('r', 7)
       .style('fill', colors[idx])
-      .on('click', () => onClick(idx))  // ← call the injected handler
-      .style('cursor', 'pointer')
-      .on('mouseover', function () {
+      .on('click', function() {
+        d3.select(this)
+          .attr('opacity', 0.5)
+        onClick(idx)
+      })
+      .on('mouseover', function() {
         d3.select(this)
           .attr('stroke', '#333')
           .attr('stroke-width', 2);
       })
-      .on('mouseout', function () {
+      .on('mouseout', function() {
         d3.select(this)
           .attr('stroke', 'none');
       });
