@@ -546,10 +546,15 @@ function renderDifferencePlot(fullData, lightState = null) {
     .on('mousemove', function(event) {
       const [mouseX] = d3.pointer(event, this);
       const hoveredHour = xScale.invert(mouseX);
+      const [minH,maxH] = xScale.domain();
+      const visible = fullData
+        .filter(d => d.hours >= minH && d.hours <= maxH)
+        .filter(d => lightState === null || d.lights === lightState);
+
       const bisect = d3.bisector(d => d.hours).center;
-      const i = bisect(fullData, hoveredHour);
-      const d0 = fullData[i - 1];
-      const d1 = fullData[i];
+      const i = bisect(visible, hoveredHour);
+      const d0 = visible[i - 1];
+      const d1 = visible[i];
       const d = d0 && d1
         ? (hoveredHour - d0.hours > d1.hours - hoveredHour ? d1 : d0)
         : (d0 || d1);
