@@ -27,21 +27,34 @@ const xScale = d3.scaleLinear()
 const initialXDomain = xScale.domain(); // for dblclick reset
 
 function updateStats(subset, categories) {
-    // male
-    if (categories.includes('mavg') && subset.length) {
-      d3.select('#avg-male')
-        .text(d3.mean(subset, d => d.mavg).toFixed(2));
-    } else {
-      d3.select('#avg-male').text('N/A');
-    }
-    // female
-    if (categories.includes('favg') && subset.length) {
-      d3.select('#avg-female')
-        .text(d3.mean(subset, d => d.favg).toFixed(2));
-    } else {
-      d3.select('#avg-female').text('N/A');
-    }
+  // male
+  if (categories.includes('mavg') && subset.length) {
+    d3.select('#avg-male')
+      .text(d3.mean(subset, d => d.mavg).toFixed(2));
+  } else {
+    d3.select('#avg-male').text('N/A');
   }
+
+  // female
+  if (categories.includes('favg') && subset.length) {
+    d3.select('#avg-female')
+      .text(d3.mean(subset, d => d.favg).toFixed(2));
+  } else {
+    d3.select('#avg-female').text('N/A');
+  }
+
+  // difference *only* if both are on
+  if (categories.includes('mavg') && categories.includes('favg') && subset.length) {
+    const diffAvg = d3.mean(subset, d => d.mavg - d.favg).toFixed(2);
+    d3.select('#avg-diff').text(diffAvg);
+    // show the difference plot
+    d3.select('#diff-chart').style('display', null);
+  } else {
+    d3.select('#avg-diff').text('N/A');
+    // hide the difference plot
+    d3.select('#diff-chart').style('display', 'none');
+  }
+}
 
 function renderPlot(data, categories, colors, lightState = null) {
   const svg = d3.select('#act-plot')
@@ -236,7 +249,7 @@ function renderPlot(data, categories, colors, lightState = null) {
   currentData = data.filter(d =>
     d.hours >= newDomain[0] &&
     d.hours <= newDomain[1] &&
-    (currentLightState === null || d.lights === currentLightState)
+    (lightState === null || d.lights === lightState)
     );
   updateStats(currentData, currentCategories);
  }
@@ -269,7 +282,7 @@ function renderPlot(data, categories, colors, lightState = null) {
   renderDifferencePlot(differenceData, lightState);
   
   currentData = data.filter(d =>
-  currentLightState === null || d.lights === currentLightState
+  lightState === null || d.lights === lightState
   );
   updateStats(currentData, currentCategories);
  });
@@ -337,48 +350,64 @@ function handleSexClick(idx) {
   renderDifferencePlot(differenceData, currentLightStateParam);
 
   // update stats using only the light filter (stats only care about rows)
-  if (currentLightStateParam === null) {
-    currentData = data.slice();
-  } else if (currentLightStateParam === '__none__') {
-    currentData = [];
-  } else {
-    currentData = data.filter(d => d.lights === currentLightStateParam);
-  }
   updateStats(currentData, currentCategories);
 }
 
 function handleLightClick(idx) {
-  // flip this state on/off
+  // 1) flip that light‐state on/off
   showLight[idx] = !showLight[idx];
 
-  // style the legend
+  // 2) update legend styling
   d3.select('#lights').selectAll('text')
     .attr('class', (_, i) => showLight[i] ? null : 'hidden');
 
-  // build allowed array
+  // 3) build the tiny array of allowed states
   const lightStates = ['On','Off'];
   const allowed = lightStates.filter((_, i) => showLight[i]);
 
-  // derive your single render filter
-  if (allowed.length === 2)         currentLightStateParam = null;
-  else if (allowed.length === 1)    currentLightStateParam = allowed[0];
-  else                               currentLightStateParam = '__none__';
+  // 4) set your single-value filter param
+  if      (allowed.length === 2) currentLightStateParam = null;
+  else if (allowed.length === 1) currentLightStateParam = allowed[0];
+  else                            currentLightStateParam = '__none__';
 
-  // re-render both plots with both filters
-  d3.select('#act-plot').selectAll('*').remove();
-  renderPlot(data, currentCategories, ['royalblue','pink'].filter((_,i)=>showSex[i]), currentLightStateParam);
+  // 5) recompute the brushSubset from the current zoom
+  const [minH, maxH] = xScale.domain();
+  const brushSubset = data.filter(d =>
+    d.hours >= minH && d.hours <= maxH
+  );
 
-  d3.select('#diff-chart').selectAll('*').remove();
-  renderDifferencePlot(differenceData, currentLightStateParam);
-
-  // update stats using both filters (stats only care about rows vs. categories)
+  // 6) now build currentData from that brushSubset + light filter
   if (currentLightStateParam === null) {
-    currentData = data.slice();
+    // both on → back to full brushSubset
+    currentData = brushSubset.slice();
   } else if (currentLightStateParam === '__none__') {
+    // none on → nothing
     currentData = [];
   } else {
-    currentData = data.filter(d => d.lights === currentLightStateParam);
+    // exactly one state → filter brushSubset to that state
+    currentData = brushSubset.filter(d =>
+      d.lights === currentLightStateParam
+    );
   }
+
+  // 7) redraw the main plot using your original logic
+  const cols = ['royalblue','pink'].filter((_, i) => showSex[i]);
+  d3.select('#act-plot').selectAll('*').remove();
+  renderPlot(
+    data,                     // still pass full data so defined() gaps correctly
+    currentCategories,
+    cols,
+    currentLightStateParam    // your on/off/null param
+  );
+
+  // 8) redraw the diff plot the same way
+  d3.select('#diff-chart').selectAll('*').remove();
+  renderDifferencePlot(
+    differenceData,
+    currentLightStateParam
+  );
+
+  // 9) update stats off of the freshly-computed currentData
   updateStats(currentData, currentCategories);
 }
 
