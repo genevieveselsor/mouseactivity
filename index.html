@@ -10,9 +10,9 @@
     <title>Mice Activity</title>
 </head>
 <body>
-    <h1>How does mice activity differ between sexes over time?</h1>
+    <h1>How Does Mice Activity Differ Between Sexes Over Time?</h1>
 
-    <p>Click on the circles below to filter data. Drag your cursor on the top graph to select a range of time. <br> Double click on the main graph to reset the axes or click 'Reset All' to reset the entire plot.</p>
+    <p id="desc">Click on the circles below to filter data. Drag your cursor on the top graph to select a range of time. <br> Double click on the main graph to reset the axes or click 'Reset All' to reset the entire plot.</p>
     <div id="legends">
         <svg id="sexes" width="160" height="50"></svg>
         <svg id="lights" width="180" height="50"></svg>
@@ -27,6 +27,32 @@
             <p>Average Female Activity: </p><span id="avg-female">—</span>
             <p>Average Difference Between Male and Female Activity: </p><span id="avg-diff">—</span>
         </div>
+    </div>
+    <div id="writeup">
+        <h3>Team Gnarly: Genevieve Selsor, Kai Arizabal, Mena Song-Lew</h3>
+        <p>We created an interactive line chart that helps us compare the average activity per hour between female and male mice over the span of 14 days. A line plot best fits our time series data, this allows us to effectively visualize activity between the two sexes over time. The interactivity of visualization allows the user to filter the larger dataset to obtain a subset of data of each gender as well as filter whether the lights were on or off at the time activity was recorded. This allows the user to examine  relationships between groups of the data. We also included brush interactivity within the plot to obtain a subset of data in a specific time range.
+            <br>
+            <br>
+            Underneath our main plot is an additional line plot that shows the difference between average male and average female activity over time. This allows the user to see when males are more active than females on average and vice versa,and highlights the difference in activity between genders. The scale of the x-axis on the difference plot corresponds to the chosen time period the user brushes in the main plot. 
+            <br>
+            <br>
+            Each plot includes its own tooltip, which allows the user to view the metrics per hour. Finally, to supplement our plots, we included the average female activity, male activity, and difference as statistics that update dynamically with the plot as the user interacts with it. We thought that these statistics were crucial in tying the whole visualization together as they allow the user to quickly reference the difference in activity between the two sexes with the conditions they selected.
+            <br>
+            <br>
+            Each of us created two visualizations to start which took approximately 1 to 2 hours each. When making our final decision, we decided we wanted to visualize how activity differs between genders. We originally also wanted to include estrus as another toggleable feature, similar to the lights toggles, but we decided against it as we thought it would overcomplicate our plot.
+            <br>
+            <br>
+            Genevieve preprocessed the data by merging the two activity datasets together, aggregating the average activity between each gender by hour, and adding a column that indicated whether or not the lights were on, which took around 30 minutes. She also worked on adding the brushing feature (1 hour), tooltips (1 hour), difference plot (2 hours), and statistics (2 hours), making sure that each of the interactive features dynamically updated with each other. Furthermore, she also added the ‘Reset All’ button and addressed bugs that arose during the process (2 hours). In total, this took approximately 8 hours of work.
+            <br>
+            <br>
+            Kai added the main line plot and the legend charts (gender and light status), which took 45 minutes. They worked on some interactive D3 elements, specifically the toggleable data features. Additionally, they helped integrate the toggleable elements with brushing and also addressed bugs that arose during this process. This took approximately 4 hours of work.
+            <br>
+            <br>
+            Mena worked on the CSS styling of the webpage, which took about 75 minutes. She also worked on resizing and updating the legend with changing opacity upon click, which took an hour and a half. In total, this took about 3 hours of work.
+            <br>
+            <br>
+            In total, we spent about 15 hours altogether to complete this project. Many of the dynamic elements, particularly the toggling, brushing, and statistics, ended up taking the most time to complete as many of their functions rely on one another in order to work properly. Despite running into some challenges throughout the process, we managed to overcome them, making it very rewarding to see our finished product in the end.
+        </p>
     </div>
 
 </body>
