@@ -8,9 +8,10 @@ body {
 
 #legends {
   display: grid;
-  grid-template-columns: repeat(3, 333px) 1fr;
+  grid-template-columns: repeat(3, 1fr) 20%;
   gap: 0.5em;
-  margin-bottom: 20px;
+  margin-top: 10px;
+  margin-bottom: 10px;
   justify-items: center;
   align-items: center;
 
@@ -25,6 +26,7 @@ circle:hover {
 
 }
 
+/* click interactivity, change color of toggle */
 circle.hidden {
   opacity: 0.3;
 }
@@ -32,7 +34,7 @@ circle.hidden {
 #charts {
   display: grid;
   grid-template-rows: 2fr;
-  grid-template-columns: 1100px 1fr;
+  grid-template-columns: 1fr 20%;
   justify-items: center;
   align-items: center;
 
@@ -57,7 +59,7 @@ circle.hidden {
   /* align-items: center; */
   
   p {
-    font-size:large;
+    font-size: large;
     margin: 0;
   }
 
@@ -67,4 +69,12 @@ circle.hidden {
   }
 }
 
-/* click interactivity, change color of toggle */
+h1 {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+p {
+  margin: 0;
+}
+

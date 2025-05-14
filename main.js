@@ -10,7 +10,7 @@ async function loadData() {
 const data = await loadData();
 
 // set global dimensions
-const width  = 1000;
+const width  = 900;
 const height = 300;
 const margin = { top: 40, right: 20, bottom: 30, left: 60 };
 
