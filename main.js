@@ -411,14 +411,14 @@ const legends = d3.select('#legends');
 
 renderLegend(
   d3.select('#lights'),
-  ['Turn Lights Off', 'Turn Lights On'],
+  ['Lights Off', 'Lights On'],
   ['oklch(0.45 0.0419 244.59)', 'oklch(0.91 0.1727 97.41)'],
   handleLightClick
 );
 
 renderLegend(
   legends.select('#sexes'),
-  ['Toggle Male Data', 'Toggle Female Data'],
+  ['Male Data', 'Female Data'],
   ['oklch(0.68 0.1603 227.65)', 'oklch(0.7 0.2195 0)'],
   handleSexClick
 );
